@@ -1,0 +1,3814 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRAXSMART — Device Test Management</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.co/gsap@3/dist/gsap.min.js"></script>
+    <script src="https://unpkg.com/gsap@3/dist/Draggable.min.js"></script>
+    <script src="https://assets.codepen.io/16327/MorphSVGPlugin3.min.js"></script>
+    <style>
+        /* =====================================================
+       LOGIN PAGE STYLES — exact logic from cute lamp login
+    ===================================================== */
+        :root {
+            --cord: hsl(210, 0%, calc((40 + (var(--on, 0) * 50)) * 1%));
+            --opening: hsl(50, calc((10 + (var(--on, 0) * 80)) * 1%), calc((20 + (var(--on, 0) * 70)) * 1%));
+            --feature: #0a0a0a;
+            --accent: 210;
+            --tongue: #e06952;
+            --base-top: hsl(var(--accent), 0%, calc((40 + (var(--on, 0) * 40)) * 1%));
+            --base-side: hsl(var(--accent), 0%, calc((20 + (var(--on, 0) * 40)) * 1%));
+            --post: hsl(var(--accent), 0%, calc((20 + (var(--on, 0) * 40)) * 1%));
+            --b-1: hsla(45, 0%, calc((50 + (var(--on, 0) * 50)) * 1%), 0.85);
+            --b-2: hsla(45, 0%, calc((20 + (var(--on, 0) * 30)) * 1%), 0.25);
+            --b-3: hsla(45, 0%, calc((20 + (var(--on, 0) * 30)) * 1%), 0.5);
+            --b-4: hsla(45, 0%, calc((20 + (var(--on, 0) * 30)) * 1%), 0.25);
+            --l-1: hsla(45, calc((0 + (var(--on, 0) * 20)) * 1%), calc((50 + (var(--on, 0) * 50)) * 1%), 0.85);
+            --l-2: hsla(45, calc((0 + (var(--on, 0) * 20)) * 1%), calc((50 + (var(--on, 0) * 50)) * 1%), 0.85);
+            --shade-hue: 320;
+            --t-1: hsl(var(--shade-hue), calc((0 + (var(--on, 0) * 20)) * 1%), calc((30 + (var(--on, 0) * 60)) * 1%));
+            --t-2: hsl(var(--shade-hue), calc((0 + (var(--on, 0) * 20)) * 1%), calc((20 + (var(--on, 0) * 35)) * 1%));
+            --t-3: hsl(var(--shade-hue), calc((0 + (var(--on, 0) * 20)) * 1%), calc((10 + (var(--on, 0) * 20)) * 1%));
+            --glow-color: hsl(320, 40%, 45%);
+            --glow-color-dark: hsl(320, 40%, 35%);
+            --success-color: #4ade80;
+            --error-color: #f87171;
+        }
+
+        /* ── Login screen layout ── */
+        #loginScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #121921;
+            z-index: 9999;
+            display: grid;
+            place-items: center;
+            transition: opacity .6s ease, transform .6s ease;
+            overflow: hidden;
+        }
+
+        #loginScreen.hide {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+
+        /* ── Container: lamp + form side by side ── */
+        .lgn-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8vmin;
+            flex-wrap: wrap;
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* ── Login card ── */
+        .lgn-card {
+            background: rgba(18, 25, 33, 0.9);
+            padding: 3rem 2.5rem;
+            border-radius: 20px;
+            min-width: 320px;
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2px solid transparent;
+        }
+
+        .lgn-card.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+            border-color: var(--glow-color);
+            box-shadow: 0 0 30px var(--glow-color);
+        }
+
+        @keyframes cardShake {
+
+            0%,
+            100% {
+                transform: scale(1) translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: scale(1) translateX(-8px);
+            }
+
+            40%,
+            80% {
+                transform: scale(1) translateX(8px);
+            }
+        }
+
+        .lgn-card.shake {
+            animation: cardShake .4s ease;
+        }
+
+        /* ── Lamp ── */
+        .lgn-lamp {
+            height: 40vmin;
+            display: none;
+            overflow: visible !important;
+        }
+
+        .lgn-lamp .lamp__tongue {
+            fill: var(--tongue);
+        }
+
+        .lgn-lamp .lamp__hit {
+            cursor: pointer;
+            opacity: 0;
+        }
+
+        .lgn-lamp .lamp__feature {
+            fill: var(--feature);
+        }
+
+        .lgn-lamp .lamp__mouth,
+        .lgn-lamp .lamp__light {
+            opacity: var(--on, 0);
+        }
+
+        .lgn-lamp .shade__opening {
+            fill: var(--opening);
+        }
+
+        .lgn-lamp .post__body {
+            fill: var(--post);
+        }
+
+        .lgn-lamp .base__top {
+            fill: var(--base-top);
+        }
+
+        .lgn-lamp .base__side {
+            fill: var(--base-side);
+        }
+
+        .lgn-lamp .top__body {
+            fill: var(--t-3);
+        }
+
+        .lgn-lamp .cord {
+            stroke: var(--cord);
+        }
+
+        .lgn-lamp .cord--rig {
+            display: none;
+        }
+
+        /* ── Lamp wrap ── */
+        .lgn-lamp-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            overflow: visible;
+        }
+
+        /* ── Toggle container (lamp on/off switch) ── */
+        .lgn-toggle-container {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: white;
+            font-family: system-ui, sans-serif;
+            font-size: 13px;
+        }
+
+        .lgn-toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+        }
+
+        .lgn-toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .lgn-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #444;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .lgn-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        #lampToggle:checked+.lgn-slider {
+            background-color: var(--glow-color);
+        }
+
+        #lampToggle:checked+.lgn-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* ── Card headings & fields ── */
+        .lgn-card h2 {
+            color: #fff;
+            font-size: 2rem;
+            margin: 0 0 2rem 0;
+            text-align: center;
+            text-shadow: 0 0 8px var(--glow-color);
+            font-family: system-ui, sans-serif;
+        }
+
+        .lgn-field {
+            margin-bottom: 1.5rem;
+        }
+
+        .lgn-label {
+            display: block;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            font-family: system-ui, sans-serif;
+        }
+
+        .lgn-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .lgn-input:focus {
+            border-color: var(--glow-color);
+            box-shadow: 0 0 10px var(--glow-color);
+        }
+
+        .lgn-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--glow-color), var(--glow-color-dark));
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+            font-size: 14px;
+            font-family: system-ui, sans-serif;
+        }
+
+        .lgn-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* ── Feedback ── */
+        .lgn-feedback {
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.9rem;
+            display: none;
+            font-family: system-ui, sans-serif;
+        }
+
+        .lgn-feedback.success {
+            display: block;
+            color: var(--success-color);
+            background: rgba(74, 222, 128, 0.1);
+        }
+
+        .lgn-feedback.error {
+            display: block;
+            color: var(--error-color);
+            background: rgba(248, 113, 113, 0.1);
+        }
+
+        /* ── Settings button ── */
+        .lgn-settings-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(18, 25, 33, 0.9);
+            border: 1px solid var(--glow-color);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: system-ui, sans-serif;
+        }
+
+        /* ── Color settings panel ── */
+        .lgn-color-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(18, 25, 33, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid var(--glow-color);
+            display: none;
+            z-index: 10;
+            font-family: system-ui, sans-serif;
+        }
+
+        .lgn-color-panel.open {
+            display: block;
+        }
+
+        .lgn-color-panel-header {
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .lgn-color-panel-header button {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .lgn-color-swatches {
+            display: flex;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .lgn-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: .2s;
+        }
+
+        .lgn-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .lgn-swatch.active {
+            border-color: white;
+        }
+
+        /* ── Logout btn in dashboard header ── */
+        .btn-logout {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, .4);
+            color: #f87171;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'DM Sans', sans-serif;
+            letter-spacing: .4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: .15s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, .12);
+            border-color: #ef4444;
+        }
+
+        @media(max-width:600px) {
+            .lgn-inner {
+                gap: 4vmin;
+                padding: 1rem;
+            }
+
+            .lgn-lamp {
+                height: 30vmin;
+            }
+
+            .lgn-card {
+                min-width: 0;
+                width: 90vw;
+                padding: 2rem 1.5rem;
+            }
+        }
+    </style>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #080d14;
+            --bg2: #0c1220;
+            --surf: #101825;
+            --surf2: #152033;
+            --surf3: #1c2a3e;
+            --bdr: #1a2840;
+            --bdr2: #243650;
+            --blue: #2563eb;
+            --blue2: #3b82f6;
+            --blue3: #60a5fa;
+            --blue4: #93c5fd;
+            --cyan: #06b6d4;
+            --cyan2: #22d3ee;
+            --green: #10b981;
+            --green2: #34d399;
+            --amber: #f59e0b;
+            --amber2: #fbbf24;
+            --red: #ef4444;
+            --red2: #f87171;
+            --purple: #7c3aed;
+            --purple2: #a78bfa;
+            --orange: #f97316;
+            --orange2: #fb923c;
+            --pink: #ec4899;
+            --wb-with: #1e40af;
+            --wb-with-border: #3b82f6;
+            --wb-with-text: #93c5fd;
+            --wb-without: #7c2d12;
+            --wb-without-border: #f97316;
+            --wb-without-text: #fdba74;
+            --txt: #e2e8f0;
+            --txt2: #94a3b8;
+            --txt3: #64748b;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'DM Sans', sans-serif;
+            --r4: 4px;
+            --r6: 6px;
+            --r8: 8px;
+            --r10: 10px;
+            --r12: 12px;
+            --r16: 16px;
+            --sh1: 0 2px 8px rgba(0, 0, 0, .4);
+            --sh2: 0 8px 24px rgba(0, 0, 0, .5);
+            --sh3: 0 20px 48px rgba(0, 0, 0, .6);
+        }
+
+        [data-theme=light] {
+            --bg: #f0f4f8;
+            --bg2: #e8eef5;
+            --surf: #fff;
+            --surf2: #f8fafc;
+            --surf3: #f1f5f9;
+            --bdr: #e2e8f0;
+            --bdr2: #cbd5e1;
+            --txt: #0f172a;
+            --txt2: #475569;
+            --txt3: #94a3b8;
+            --wb-with: #dbeafe;
+            --wb-with-border: #3b82f6;
+            --wb-with-text: #1d4ed8;
+            --wb-without: #ffedd5;
+            --wb-without-border: #f97316;
+            --wb-without-text: #c2410c;
+        }
+
+        body {
+            font-family: var(--sans);
+            background: var(--bg);
+            color: var(--txt);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bdr2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--blue2);
+        }
+
+        /* HEADER */
+        .hdr {
+            background: rgba(8, 13, 20, .9);
+            border-bottom: 1px solid var(--bdr);
+            padding: 10px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(16px);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, var(--blue2), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            white-space: nowrap;
+        }
+
+        .logo span {
+            opacity: .5;
+            font-weight: 300;
+        }
+
+        .srch {
+            flex: 1;
+            max-width: 360px;
+            position: relative;
+        }
+
+        .srch input {
+            width: 100%;
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r8);
+            padding: 8px 12px 8px 34px;
+            font-family: var(--sans);
+            color: var(--txt);
+            font-size: 13px;
+            transition: .2s;
+        }
+
+        .srch input:focus {
+            outline: none;
+            border-color: var(--blue2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .15);
+        }
+
+        .srch input::placeholder {
+            color: var(--txt3);
+        }
+
+        .srch-ico {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--txt3);
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .hdr-r {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .btn {
+            font-family: var(--sans);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: .3px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: var(--r6);
+            cursor: pointer;
+            transition: .15s;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--blue), var(--blue2));
+            color: #fff;
+        }
+
+        .btn-secondary {
+            background: var(--surf2);
+            color: var(--blue3);
+            border: 1px solid var(--bdr2);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--txt2);
+        }
+
+        .btn-ghost:hover {
+            color: var(--txt);
+            background: var(--surf2);
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+        }
+
+        .btn-warning {
+            background: var(--amber);
+            color: #000;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+
+        .btn-xs {
+            padding: 3px 8px;
+            font-size: 10px;
+        }
+
+        .icon-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--r6);
+            background: var(--surf2);
+            border: 1px solid var(--bdr);
+            cursor: pointer;
+            transition: .15s;
+            color: var(--txt2);
+            font-size: 14px;
+        }
+
+        .icon-btn:hover {
+            background: var(--surf3);
+            color: var(--txt);
+            border-color: var(--blue2);
+        }
+
+        /* LAYOUT */
+        .main {
+            max-width: 1920px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .page {
+            display: none;
+            animation: fadeUp .25s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* FILTER BAR */
+        .filter-bar {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 10px 0;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--bdr);
+        }
+
+        .filter-btn {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .5px;
+            cursor: pointer;
+            border: 1px solid var(--bdr2);
+            background: var(--surf);
+            color: var(--txt2);
+            transition: .15s;
+            text-transform: uppercase;
+        }
+
+        .filter-btn:hover {
+            border-color: var(--blue2);
+            color: var(--blue3);
+        }
+
+        .filter-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        .filter-btn.wb {
+            border-color: var(--wb-with-border);
+            color: var(--wb-with-text);
+            background: rgba(37, 99, 235, .1);
+        }
+
+        .filter-btn.wb.active {
+            background: var(--wb-with);
+            color: #fff;
+        }
+
+        .filter-btn.wob {
+            border-color: var(--wb-without-border);
+            color: var(--wb-without-text);
+            background: rgba(249, 115, 22, .1);
+        }
+
+        .filter-btn.wob.active {
+            background: var(--orange);
+            color: #fff;
+        }
+
+        .filter-btn.pass {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .filter-btn.pass.active {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .filter-btn.fail {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        .filter-btn.fail.active {
+            background: var(--red);
+            color: #fff;
+        }
+
+        .filter-btn.active-s {
+            border-color: var(--amber);
+            color: var(--amber);
+        }
+
+        .filter-btn.active-s.active {
+            background: var(--amber);
+            color: #000;
+        }
+
+        .filter-btn.reset-s {
+            border-color: var(--purple);
+            color: var(--purple2);
+        }
+
+        .filter-btn.reset-s.active {
+            background: var(--purple);
+            color: #fff;
+        }
+
+        .filter-btn.unreset-s {
+            border-color: var(--cyan);
+            color: var(--cyan2);
+        }
+
+        .filter-btn.unreset-s.active {
+            background: var(--cyan);
+            color: #000;
+        }
+
+        /* STAT CARDS */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-c {
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r10);
+            padding: 14px 16px;
+            position: relative;
+            overflow: hidden;
+            transition: .2s;
+        }
+
+        .stat-c::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--accent, var(--blue2));
+        }
+
+        .stat-c:hover {
+            border-color: var(--blue2);
+            transform: translateY(-2px);
+            box-shadow: var(--sh2);
+        }
+
+        .stat-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 6px;
+        }
+
+        .stat-val {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: var(--mono);
+            color: var(--accent, var(--blue3));
+            line-height: 1;
+        }
+
+        .stat-sub {
+            font-size: 10px;
+            color: var(--txt3);
+            margin-top: 4px;
+        }
+
+        /* SECTION HEADING */
+        .sec-hd {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .sec-ttl {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--txt2);
+        }
+
+        /* CHARTS GRID */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .chart-box {
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r12);
+            padding: 14px;
+            position: relative;
+        }
+
+        .chart-box-ttl {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--txt2);
+            margin-bottom: 10px;
+        }
+
+        .chart-c {
+            position: relative;
+            height: 180px;
+        }
+
+        .chart-click-hint {
+            font-size: 9px;
+            color: var(--txt3);
+            text-align: center;
+            margin-top: 6px;
+        }
+
+        /* BATCH CARDS */
+        .batch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+        }
+
+        .batch-card {
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r12);
+            padding: 16px;
+            transition: .2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .batch-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(59, 130, 246, .06), transparent);
+            opacity: 0;
+            transition: .3s;
+            pointer-events: none;
+        }
+
+        .batch-card:hover {
+            border-color: var(--blue2);
+            transform: translateY(-3px);
+            box-shadow: var(--sh2);
+        }
+
+        .batch-card:hover::after {
+            opacity: 1;
+        }
+
+        .bc-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .bc-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--txt);
+        }
+
+        .bc-desc {
+            font-size: 12px;
+            color: var(--txt3);
+            margin-bottom: 10px;
+        }
+
+        .bc-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            animation: pls 2s infinite;
+        }
+
+        @keyframes pls {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: .4;
+            }
+        }
+
+        .bc-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .bc-stat {
+            background: var(--bg2);
+            border: 1px solid var(--bdr);
+            border-radius: var(--r6);
+            padding: 7px;
+            text-align: center;
+        }
+
+        .bc-sv {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: var(--mono);
+            color: var(--blue3);
+        }
+
+        .bc-sl {
+            font-size: 9px;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-top: 2px;
+        }
+
+        .bc-wb {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .bc-wb-item {
+            flex: 1;
+            padding: 5px 8px;
+            border-radius: var(--r6);
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bc-wb-w {
+            background: rgba(37, 99, 235, .15);
+            border: 1px solid var(--wb-with-border);
+            color: var(--wb-with-text);
+        }
+
+        .bc-wb-wo {
+            background: rgba(249, 115, 22, .15);
+            border: 1px solid var(--wb-without-border);
+            color: var(--wb-without-text);
+        }
+
+        .bc-prog {
+            height: 4px;
+            background: var(--bg);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .bc-prog-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--green), var(--blue2));
+            transition: .5s;
+        }
+
+        .bc-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        /* INNER BATCH PAGE */
+        .grid-toggle {
+            display: flex;
+            gap: 4px;
+        }
+
+        .gt-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--r4);
+            background: var(--surf2);
+            border: 1px solid var(--bdr);
+            cursor: pointer;
+            color: var(--txt3);
+            font-size: 12px;
+            transition: .15s;
+        }
+
+        .gt-btn.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        .ib-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        }
+
+        .ib-grid.col2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .ib-grid.col4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .ib-card {
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r10);
+            padding: 14px;
+            cursor: pointer;
+            transition: .2s;
+            border-left: 3px solid var(--blue2);
+        }
+
+        .ib-card:hover {
+            transform: translateX(3px);
+            border-color: var(--blue2);
+            box-shadow: var(--sh1);
+        }
+
+        .ib-name {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .ib-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--txt2);
+            margin-bottom: 4px;
+        }
+
+        /* DEVICE VIEW */
+        .dv-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 10px 14px;
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r10);
+            margin-bottom: 10px;
+        }
+
+        .dv-search {
+            background: var(--bg2);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r6);
+            padding: 6px 10px;
+            color: var(--txt);
+            font-size: 12px;
+            font-family: var(--sans);
+            width: 200px;
+        }
+
+        .dv-search:focus {
+            outline: none;
+            border-color: var(--blue2);
+        }
+
+        .dv-count {
+            font-size: 11px;
+            color: var(--txt3);
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            gap: 5px;
+            max-height: calc(100vh - 280px);
+            overflow-y: auto;
+            padding: 2px;
+        }
+
+        .device-grid.compact {
+            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+            gap: 4px;
+        }
+
+        .device-grid.large {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+        }
+
+        /* Device Cards */
+        .dc {
+            border-radius: var(--r6);
+            padding: 6px 7px;
+            cursor: pointer;
+            transition: .15s;
+            position: relative;
+            border: 1.5px solid transparent;
+            min-height: 68px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .dc:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sh2);
+        }
+
+        .dc.selected {
+            outline: 2px solid var(--cyan);
+            outline-offset: 1px;
+        }
+
+        /* Winbond differentiation */
+        .dc.wb {
+            background: rgba(30, 64, 175, .2);
+            border-color: rgba(59, 130, 246, .35);
+        }
+
+        .dc.wb:hover {
+            border-color: var(--wb-with-border);
+        }
+
+        .dc.wob {
+            background: rgba(124, 45, 18, .2);
+            border-color: rgba(249, 115, 22, .35);
+        }
+
+        .dc.wob:hover {
+            border-color: var(--wb-without-border);
+        }
+
+        /* Status overlays */
+        .dc.s-pass {
+            border-top-color: var(--green);
+        }
+
+        .dc.s-fail {
+            border-top-color: var(--red);
+        }
+
+        .dc.s-active {
+            border-top-color: var(--amber);
+        }
+
+        .dc.s-pending {
+            border-top-color: var(--txt3);
+        }
+
+        .dc.s-reset {
+            border-top-color: var(--purple);
+        }
+
+        .dc.s-unreset {
+            border-top-color: var(--cyan);
+        }
+
+        .dc-fid {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--blue3);
+            font-family: var(--mono);
+            line-height: 1;
+        }
+
+        .dc-time {
+            font-size: 9px;
+            color: var(--txt3);
+            font-family: var(--mono);
+        }
+
+        .dc-bot {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dc-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .dc-dot.pass {
+            background: var(--green);
+        }
+
+        .dc-dot.fail {
+            background: var(--red);
+        }
+
+        .dc-dot.active {
+            background: var(--amber);
+            animation: pls 2s infinite;
+        }
+
+        .dc-dot.pending {
+            background: var(--txt3);
+        }
+
+        .dc-dot.reset {
+            background: var(--purple);
+        }
+
+        .dc-dot.unreset {
+            background: var(--cyan);
+        }
+
+        .dc-wb-badge {
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: .3px;
+            padding: 1px 4px;
+            border-radius: 2px;
+        }
+
+        .dc-wb-badge.wb {
+            background: rgba(59, 130, 246, .3);
+            color: var(--wb-with-text);
+        }
+
+        .dc-wb-badge.wob {
+            background: rgba(249, 115, 22, .3);
+            color: var(--wb-without-text);
+        }
+
+        .dc-chk {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            background: var(--cyan);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            color: #000;
+            font-weight: 700;
+        }
+
+        .dc.selected .dc-chk {
+            display: flex;
+        }
+
+        /* SELECTION ACTION BAR */
+        .sel-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--surf3);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r12);
+            padding: 10px 16px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            z-index: 150;
+            box-shadow: var(--sh3);
+            transition: .3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .sel-bar.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .sel-count {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--cyan);
+            white-space: nowrap;
+        }
+
+        /* LEFT DRAWER */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, .6);
+            z-index: 210;
+            opacity: 0;
+            pointer-events: none;
+            transition: .25s;
+            backdrop-filter: blur(2px);
+        }
+
+        .overlay.on {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .drw {
+            position: fixed;
+            top: 0;
+            left: -420px;
+            width: 380px;
+            height: 100%;
+            background: var(--surf);
+            border-right: 1px solid var(--bdr2);
+            z-index: 220;
+            display: flex;
+            flex-direction: column;
+            transition: .3s cubic-bezier(.4, 0, .2, 1);
+            box-shadow: var(--sh3);
+        }
+
+        .drw.on {
+            left: 0;
+        }
+
+        .drw.right {
+            left: auto;
+            right: -480px;
+            width: 440px;
+            border-right: none;
+            border-left: 1px solid var(--bdr2);
+        }
+
+        .drw.right.on {
+            right: 0;
+        }
+
+        .drw-hd {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--bdr);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surf2);
+        }
+
+        .drw-ttl {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--blue3);
+        }
+
+        .drw-cls {
+            background: transparent;
+            border: none;
+            color: var(--txt3);
+            font-size: 20px;
+            cursor: pointer;
+            transition: .15s;
+            line-height: 1;
+            padding: 2px 6px;
+            border-radius: var(--r4);
+        }
+
+        .drw-cls:hover {
+            color: var(--txt);
+            background: var(--surf3);
+        }
+
+        .drw-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--bdr);
+        }
+
+        .drw-tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            color: var(--txt3);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+            border-bottom: 2px solid transparent;
+            transition: .15s;
+        }
+
+        .drw-tab.active {
+            color: var(--blue3);
+            border-bottom-color: var(--blue2);
+        }
+
+        .drw-body {
+            flex: 1;
+            padding: 14px;
+            overflow-y: auto;
+        }
+
+        /* FORM */
+        .fg {
+            margin-bottom: 12px;
+        }
+
+        .fl {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 5px;
+        }
+
+        .fi {
+            width: 100%;
+            background: var(--bg2);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r6);
+            padding: 8px 10px;
+            font-family: var(--mono);
+            color: var(--txt);
+            font-size: 12px;
+            transition: .15s;
+        }
+
+        .fi:focus {
+            outline: none;
+            border-color: var(--blue2);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, .1);
+        }
+
+        .fi::placeholder {
+            color: var(--txt3);
+        }
+
+        select.fi {
+            cursor: pointer;
+        }
+
+        textarea.fi {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        .btn-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .btn-row.full {
+            grid-template-columns: 1fr;
+        }
+
+        /* INFO GRID */
+        .info-g {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .info-i {
+            background: var(--bg2);
+            border: 1px solid var(--bdr);
+            border-radius: var(--r6);
+            padding: 8px 10px;
+        }
+
+        .info-l {
+            font-size: 9px;
+            color: var(--txt3);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-bottom: 3px;
+        }
+
+        .info-v {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--blue3);
+            font-family: var(--mono);
+            word-break: break-all;
+        }
+
+        .winbond-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: var(--r6);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .winbond-badge.with {
+            background: rgba(37, 99, 235, .2);
+            border: 1px solid var(--wb-with-border);
+            color: var(--wb-with-text);
+        }
+
+        .winbond-badge.without {
+            background: rgba(249, 115, 22, .2);
+            border: 1px solid var(--wb-without-border);
+            color: var(--wb-without-text);
+        }
+
+        /* BREADCRUMB */
+        .bc {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: var(--txt3);
+        }
+
+        .bc a {
+            color: var(--blue3);
+            cursor: pointer;
+            transition: .15s;
+        }
+
+        .bc a:hover {
+            color: var(--blue4);
+            text-decoration: underline;
+        }
+
+        .bc span {
+            color: var(--txt3);
+        }
+
+        /* MODALS */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, .75);
+            z-index: 300;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-bg.on {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surf);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r16);
+            padding: 22px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: var(--sh3);
+        }
+
+        .modal-ttl {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--txt);
+            margin-bottom: 16px;
+        }
+
+        .confirm-modal {
+            text-align: center;
+        }
+
+        .confirm-modal p {
+            color: var(--txt2);
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .confirm-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 16px;
+            border-radius: var(--r8);
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 400;
+            display: none;
+            animation: toastIn .25s ease;
+        }
+
+        .toast.on {
+            display: block;
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* FILTERED DEVICE MODAL */
+        .fdm {
+            max-width: 900px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fdm-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .fdm .device-grid {
+            max-height: none;
+        }
+
+        /* ANALYTICS CHARTS IN RIGHT DRAWER */
+        .analytics-chart {
+            height: 160px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+
+        .chart-section {
+            background: var(--bg2);
+            border: 1px solid var(--bdr);
+            border-radius: var(--r8);
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .chart-section-ttl {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            color: var(--txt2);
+            margin-bottom: 8px;
+        }
+
+        /* LOADING SKELETON */
+        .skel {
+            background: linear-gradient(90deg, var(--bdr) 0%, var(--bdr2) 50%, var(--bdr) 100%);
+            background-size: 200%;
+            animation: skel 1.5s infinite;
+            border-radius: var(--r6);
+        }
+
+        @keyframes skel {
+            0% {
+                background-position: 200%;
+            }
+
+            100% {
+                background-position: -200%;
+            }
+        }
+
+        /* STATUS BADGES */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+
+        .badge.pass {
+            background: rgba(16, 185, 129, .15);
+            color: var(--green);
+        }
+
+        .badge.fail {
+            background: rgba(239, 68, 68, .15);
+            color: var(--red);
+        }
+
+        .badge.active {
+            background: rgba(245, 158, 11, .15);
+            color: var(--amber);
+        }
+
+        .badge.pending {
+            background: rgba(100, 116, 139, .15);
+            color: var(--txt3);
+        }
+
+        .badge.reset {
+            background: rgba(124, 58, 237, .15);
+            color: var(--purple2);
+        }
+
+        .badge.unreset {
+            background: rgba(6, 182, 212, .15);
+            color: var(--cyan2);
+        }
+
+        /* TOP NAV TABS */
+        .top-tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            padding: 10px 0 0;
+            margin-bottom: 0;
+            border-bottom: 2px solid var(--bdr);
+        }
+
+        .top-tab {
+            padding: 8px 16px;
+            border-radius: var(--r8) var(--r8) 0 0;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--txt3);
+            transition: .2s;
+            text-transform: uppercase;
+            position: relative;
+            bottom: -2px;
+            border-bottom: 2px solid transparent;
+        }
+
+        .top-tab:hover {
+            color: var(--txt);
+            background: var(--surf2);
+        }
+
+        .top-tab.active {
+            color: var(--blue3);
+            background: var(--surf);
+            border-color: var(--bdr2) var(--bdr2) var(--surf);
+            border-bottom-color: var(--surf);
+            box-shadow: 0 -3px 0 var(--blue2) inset;
+        }
+
+        .top-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--surf);
+        }
+
+        .top-tab.t-wb {}
+
+        .top-tab.t-wb.active {
+            color: var(--wb-with-text);
+        }
+
+        .top-tab.t-wob.active {
+            color: var(--wb-without-text);
+        }
+
+        .top-tab.t-pass.active {
+            color: var(--green);
+        }
+
+        .top-tab.t-fail.active {
+            color: var(--red);
+        }
+
+        .top-tab.t-active.active {
+            color: var(--amber);
+        }
+
+        .top-tab.t-reset.active {
+            color: var(--purple2);
+        }
+
+        .top-tab.t-unreset.active {
+            color: var(--cyan2);
+        }
+
+        .top-tab.t-analytics.active {
+            color: var(--pink);
+        }
+
+        .top-tab.t-live.active {
+            color: var(--green2);
+        }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            background: var(--surf3);
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            margin-left: 5px;
+            color: var(--txt3);
+        }
+
+        .top-tab.active .tab-badge {
+            background: rgba(59, 130, 246, .2);
+            color: var(--blue3);
+        }
+
+        /* MINI BATCH FILTER TABS */
+        .bc-mini-tabs {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .bc-mini-tab {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--bdr2);
+            background: var(--bg2);
+            color: var(--txt3);
+            transition: .12s;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+        }
+
+        .bc-mini-tab:hover {
+            border-color: var(--blue2);
+            color: var(--blue3);
+        }
+
+        .bc-mini-tab.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+        }
+
+        .bc-mini-tab.t-pass.active {
+            background: var(--green);
+            border-color: var(--green);
+        }
+
+        .bc-mini-tab.t-fail.active {
+            background: var(--red);
+            border-color: var(--red);
+        }
+
+        .bc-mini-tab.t-active.active {
+            background: var(--amber);
+            border-color: var(--amber);
+            color: #000;
+        }
+
+        .bc-mini-tab.t-wb.active {
+            background: var(--wb-with);
+            border-color: var(--wb-with-border);
+        }
+
+        .bc-mini-tab.t-wob.active {
+            background: var(--orange);
+            border-color: var(--wb-without-border);
+        }
+
+        /* EXPORT MENU */
+        .export-wrap {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-menu {
+            position: absolute;
+            bottom: calc(100% + 6px);
+            right: 0;
+            background: var(--surf2);
+            border: 1px solid var(--bdr2);
+            border-radius: var(--r8);
+            box-shadow: var(--sh3);
+            min-width: 130px;
+            z-index: 50;
+            display: none;
+            overflow: hidden;
+        }
+
+        .export-menu.open {
+            display: block;
+            animation: fadeUp .15s ease;
+        }
+
+        .export-opt {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--txt2);
+            transition: .12s;
+            border-bottom: 1px solid var(--bdr);
+        }
+
+        .export-opt:last-child {
+            border-bottom: none;
+        }
+
+        .export-opt:hover {
+            background: var(--surf3);
+            color: var(--txt);
+        }
+
+        .export-loading {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border: 2px solid var(--bdr2);
+            border-top-color: var(--blue2);
+            border-radius: 50%;
+            animation: spin .6s linear infinite;
+            margin-left: 4px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* DEVICE DELETE ICON */
+        .dc-del {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            background: rgba(239, 68, 68, .0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            cursor: pointer;
+            opacity: 0;
+            transition: .15s;
+            color: var(--red2);
+            z-index: 5;
+        }
+
+        .dc:hover .dc-del {
+            opacity: 1;
+            background: rgba(239, 68, 68, .15);
+        }
+
+        .dc-del:hover {
+            background: rgba(239, 68, 68, .4) !important;
+        }
+
+        /* LIVE DEVICES INDICATOR */
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green2);
+            animation: pls 1s infinite;
+            display: inline-block;
+            margin-right: 4px;
+        }
+
+        /* RESPONSIVE */
+        @media(max-width:768px) {
+            .hdr {
+                padding: 8px 12px;
+                flex-wrap: wrap;
+            }
+
+            .srch {
+                min-width: 100%;
+                order: 3;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .batch-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .drw {
+                width: 100%;
+                max-width: 100vw;
+            }
+
+            .drw.right {
+                width: 100%;
+            }
+
+            .main {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ============================================================
+     LOGIN SCREEN
+============================================================ -->
+    <div id="loginScreen">
+
+        <!-- Settings button -->
+        <button class="lgn-settings-btn" id="lgnSettingsBtn" onclick="toggleLampColorPanel()">⚙️ Settings</button>
+
+        <!-- Color panel -->
+        <div class="lgn-color-panel" id="lgnColorPanel">
+            <div class="lgn-color-panel-header">
+                <span style="color:white;">Settings</span>
+                <button id="lgnClosePanelBtn">✕</button>
+            </div>
+            <div class="lgn-color-swatches">
+                <div class="lgn-swatch active" data-hue="320" style="background:hsl(320,40%,45%)"
+                    onclick="setLampColor(this)"></div>
+                <div class="lgn-swatch" data-hue="200" style="background:hsl(200,70%,50%)" onclick="setLampColor(this)">
+                </div>
+                <div class="lgn-swatch" data-hue="120" style="background:hsl(120,70%,50%)" onclick="setLampColor(this)">
+                </div>
+                <div class="lgn-swatch" data-hue="40" style="background:hsl(40,80%,60%)" onclick="setLampColor(this)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content: lamp + login form side by side -->
+        <div class="lgn-inner">
+
+            <!-- Lamp -->
+            <div class="lgn-lamp-wrap">
+                <svg class="lgn-lamp" viewBox="0 0 333 484" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g class="shade">
+                        <ellipse class="shade__opening" cx="165" cy="220" rx="130" ry="20" />
+                    </g>
+                    <g class="base">
+                        <path class="base__side"
+                            d="M165 464c44.183 0 80-8.954 80-20v-14h-22.869c-14.519-3.703-34.752-6-57.131-6-22.379 0-42.612 2.297-57.131 6H85v14c0 11.046 35.817 20 80 20z" />
+                        <ellipse class="base__top" cx="165" cy="430" rx="80" ry="20" />
+                    </g>
+                    <g class="post">
+                        <path class="post__body" d="M180 142h-30v286c0 3.866 6.716 7 15 7 8.284 0 15-3.134 15-7V142z" />
+                    </g>
+                    <g class="cords">
+                        <path class="cord cord--rig" d="M124 187.033V347" stroke-width="6" stroke-linecap="round"
+                            style="display:none" />
+                        <line class="cord cord--dummy" x1="124" y1="190" x2="124" y2="348" stroke="var(--cord)"
+                            stroke-width="6" stroke-linecap="round" />
+                    </g>
+                    <path class="lamp__light"
+                        d="M290.5 193H39L0 463.5c0 11.046 75.478 20 165.5 20s167-11.954 167-23l-42-267.5z"
+                        fill="url(#light-grad)" />
+                    <g class="top">
+                        <path class="top__body"
+                            d="M164.859 0c55.229 0 100 8.954 100 20l29.859 199.06C291.529 208.451 234.609 200 164.859 200S38.189 208.451 35 219.06L64.859 20c0-11.046 44.772-20 100-20z" />
+                    </g>
+                    <g class="face">
+                        <g class="lamp__mouth">
+                            <path d="M165 178c19.882 0 36-16.118 36-36h-72c0 19.882 16.118 36 36 36z" fill="#141414" />
+                        </g>
+                        <g class="lamp__eyes">
+                            <path class="lamp__eye" d="M115 135c0-5.523-5.82-10-13-10s-13 4.477-13 10" stroke="#000"
+                                stroke-width="4" stroke-linecap="round" />
+                            <path class="lamp__eye" d="M241 135c0-5.523-5.82-10-13-10s-13 4.477-13 10" stroke="#000"
+                                stroke-width="4" stroke-linecap="round" />
+                        </g>
+                    </g>
+                    <defs>
+                        <linearGradient id="light-grad" x1="165.5" y1="218.5" x2="165.5" y2="483.5"
+                            gradientUnits="userSpaceOnUse">
+                            <stop stop-color="var(--l-1)" stop-opacity=".2" />
+                            <stop offset="1" stop-color="var(--l-2)" stop-opacity="0" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="lamp__hit" cx="124" cy="347" r="66" fill="#fff" />
+                </svg>
+
+                <!-- Toggle switch -->
+                <div class="lgn-toggle-container">
+                    <span>Lamp:</span>
+                    <label class="lgn-toggle-switch">
+                        <input type="checkbox" id="lampToggle">
+                        <span class="lgn-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Login Card -->
+            <div class="lgn-card" id="loginCard">
+                <h2>Welcome Back</h2>
+                <div class="lgn-field">
+                    <label class="lgn-label" for="lgnUser">Username</label>
+                    <input type="text" id="lgnUser" class="lgn-input" placeholder="admin" autocomplete="off"
+                        onkeydown="if(event.key==='Enter')attemptLogin()">
+                </div>
+                <div class="lgn-field">
+                    <label class="lgn-label" for="lgnPass">Password</label>
+                    <input type="password" id="lgnPass" class="lgn-input" placeholder="password" autocomplete="off"
+                        onkeydown="if(event.key==='Enter')attemptLogin()">
+                </div>
+                <button class="lgn-btn" id="lgnBtn" onclick="attemptLogin()">🔓 ACCESS DASHBOARD</button>
+                <div id="lgnFeedback" class="lgn-feedback"></div>
+            </div>
+
+        </div><!-- /lgn-inner -->
+    </div><!-- /loginScreen -->
+
+    <!-- DASHBOARD (hidden until logged in) -->
+    <div id="dashboardWrap" style="display:none;">
+
+        <!-- HEADER -->
+        <header class="hdr">
+            <div class="logo">⚡ TRAXSMART <span>v2</span></div>
+            <div class="srch">
+                <span class="srch-ico">⌕</span>
+                <input type="text" id="globalSearch" placeholder="Search IMEI, ICCID, FID, Batch...">
+            </div>
+            <div class="hdr-r">
+                <div class="icon-btn" onclick="toggleTheme()" title="Toggle Theme">🌙</div>
+                <button class="btn btn-ghost btn-sm" onclick="goHome()">⌂ Home</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleRightDrawer()">📊 Analytics</button>
+                <button class="btn btn-primary btn-sm" onclick="showCreateBatchModal()">+ New Batch</button>
+                <button class="btn-logout" onclick="confirmLogout()">⏻ Logout</button>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <div class="main">
+
+            <!-- HOME PAGE -->
+            <div id="homePage" class="page active">
+                <!-- TOP NAVIGATION TABS -->
+                <div class="top-tabs" id="topNavTabs">
+                    <button class="top-tab active" data-tab="all" onclick="setTopTab('all',this)">All Devices <span
+                            class="tab-badge" id="tbAll">0</span></button>
+                    <button class="top-tab t-wb" data-tab="WITH_WINBOND" onclick="setTopTab('WITH_WINBOND',this)">⬡ With
+                        Winbond <span class="tab-badge" id="tbWB">0</span></button>
+                    <button class="top-tab t-wob" data-tab="WITHOUT_WINBOND"
+                        onclick="setTopTab('WITHOUT_WINBOND',this)">⬡ W/O Winbond <span class="tab-badge"
+                            id="tbWOB">0</span></button>
+                    <button class="top-tab t-pass" data-tab="PASS" onclick="setTopTab('PASS',this)">✓ Pass <span
+                            class="tab-badge" id="tbPass">0</span></button>
+                    <button class="top-tab t-fail" data-tab="FAIL" onclick="setTopTab('FAIL',this)">✗ Fail <span
+                            class="tab-badge" id="tbFail">0</span></button>
+                    <button class="top-tab t-active" data-tab="ACTIVE" onclick="setTopTab('ACTIVE',this)">◉ Active <span
+                            class="tab-badge" id="tbActive">0</span></button>
+                    <button class="top-tab t-reset" data-tab="RESET" onclick="setTopTab('RESET',this)">↺ Reset <span
+                            class="tab-badge" id="tbReset">0</span></button>
+                    <button class="top-tab t-unreset" data-tab="UNRESET" onclick="setTopTab('UNRESET',this)">⊘ Unreset
+                        <span class="tab-badge" id="tbUnreset">0</span></button>
+                    <button class="top-tab t-analytics" data-tab="analytics" onclick="setTopTab('analytics',this)">📊
+                        Analytics</button>
+                    <button class="top-tab t-live" data-tab="live" onclick="setTopTab('live',this)"><span
+                            class="live-dot"></span>Live <span class="tab-badge" id="tbLive">0</span></button>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar" id="homeFilterBar">
+                    <span
+                        style="font-size:10px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;">Filter:</span>
+                    <button class="filter-btn active" data-filter="all" onclick="setHomeFilter('all',this)">All</button>
+                    <button class="filter-btn wb" data-filter="WITH_WINBOND"
+                        onclick="setHomeFilter('WITH_WINBOND',this)">⬡ W/Winbond</button>
+                    <button class="filter-btn wob" data-filter="WITHOUT_WINBOND"
+                        onclick="setHomeFilter('WITHOUT_WINBOND',this)">⬡ W/O Winbond</button>
+                    <button class="filter-btn pass" data-filter="PASS" onclick="setHomeFilter('PASS',this)">✓
+                        Pass</button>
+                    <button class="filter-btn fail" data-filter="FAIL" onclick="setHomeFilter('FAIL',this)">✗
+                        Fail</button>
+                    <button class="filter-btn active-s" data-filter="ACTIVE" onclick="setHomeFilter('ACTIVE',this)">◉
+                        Active</button>
+                    <button class="filter-btn reset-s" data-filter="RESET" onclick="setHomeFilter('RESET',this)">↺
+                        Reset</button>
+                    <button class="filter-btn unreset-s" data-filter="UNRESET" onclick="setHomeFilter('UNRESET',this)">⊘
+                        Unreset</button>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="stats-row">
+                    <div class="stat-c" style="--accent:var(--blue3)">
+                        <div class="stat-lbl">Batches</div>
+                        <div class="stat-val" id="stBatches">0</div>
+                        <div class="stat-sub">Total batches</div>
+                    </div>
+                    <div class="stat-c" style="--accent:var(--cyan2)">
+                        <div class="stat-lbl">Devices</div>
+                        <div class="stat-val" id="stDevices">0</div>
+                        <div class="stat-sub">All devices</div>
+                    </div>
+                    <div class="stat-c" style="--accent:var(--green2)">
+                        <div class="stat-lbl">Pass Rate</div>
+                        <div class="stat-val" id="stPassRate">0%</div>
+                        <div class="stat-sub">Success ratio</div>
+                    </div>
+                    <div class="stat-c" style="--accent:var(--amber2)">
+                        <div class="stat-lbl">Avg Time</div>
+                        <div class="stat-val" id="stAvgTime">0m</div>
+                        <div class="stat-sub">Testing time</div>
+                    </div>
+                    <div class="stat-c" style="--accent:var(--wb-with-text)">
+                        <div class="stat-lbl">W/ Winbond</div>
+                        <div class="stat-val" id="stWithWB">0</div>
+                        <div class="stat-sub">With Winbond</div>
+                    </div>
+                    <div class="stat-c" style="--accent:var(--wb-without-text)">
+                        <div class="stat-lbl">W/O Winbond</div>
+                        <div class="stat-val" id="stWithoutWB">0</div>
+                        <div class="stat-sub">Without Winbond</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid" id="homeChartsGrid">
+                    <div class="chart-box">
+                        <div class="chart-box-ttl">Winbond Distribution</div>
+                        <div class="chart-c"><canvas id="wbPieChart"></canvas></div>
+                        <div class="chart-click-hint">↑ Click to filter devices</div>
+                    </div>
+                    <div class="chart-box">
+                        <div class="chart-box-ttl">Status Distribution</div>
+                        <div class="chart-c"><canvas id="statusChart"></canvas></div>
+                        <div class="chart-click-hint">↑ Click to filter devices</div>
+                    </div>
+                    <div class="chart-box">
+                        <div class="chart-box-ttl">FID Average Time (min)</div>
+                        <div class="chart-c"><canvas id="fidAvgChart"></canvas></div>
+                        <div class="chart-click-hint">↑ Click to see FID devices</div>
+                    </div>
+                    <div class="chart-box">
+                        <div class="chart-box-ttl">Top High Test Time Devices</div>
+                        <div class="chart-c"><canvas id="topTimeChart"></canvas></div>
+                        <div class="chart-click-hint">↑ Click to view device</div>
+                    </div>
+                </div>
+
+                <!-- Batch Cards -->
+                <div class="sec-hd">
+                    <span class="sec-ttl">📦 Test Batches</span>
+                    <span style="font-size:11px;color:var(--txt3)" id="batchCountLabel">0 batches</span>
+                </div>
+                <div class="batch-grid" id="batchCardsContainer"></div>
+            </div>
+
+            <!-- BATCH DETAILS PAGE -->
+            <div id="batchDetailsPage" class="page">
+                <div class="bc"><a onclick="goHome()">Home</a><span>›</span><span id="bcBatchName">Batch</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <div style="font-size:18px;font-weight:700" id="batchDetailsTitle">Batch Details</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <div class="grid-toggle">
+                            <div class="gt-btn active" title="Auto" onclick="setIBGrid('auto',this)">⊞</div>
+                            <div class="gt-btn" title="2 Col" onclick="setIBGrid('col2',this)">▫▫</div>
+                            <div class="gt-btn" title="4 Col" onclick="setIBGrid('col4',this)">▪▪▪▪</div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm" onclick="goHome()">← Back</button>
+                    </div>
+                </div>
+                <div class="ib-grid" id="innerBatchContainer"></div>
+            </div>
+
+            <!-- DEVICE VIEW PAGE -->
+            <div id="deviceViewPage" class="page">
+                <div class="bc">
+                    <a onclick="goHome()">Home</a><span>›</span>
+                    <a onclick="goToBatchDetails(currentBatchKey)" id="bcBatch2">Batch</a><span>›</span>
+                    <span id="bcInnerBatch">Inner Batch</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <div style="font-size:16px;font-weight:700" id="deviceViewTitle">Devices</div>
+                    <div style="display:flex;gap:8px;">
+                        <div class="icon-btn" onclick="setDeviceGrid('compact')" title="Compact">⊟</div>
+                        <div class="icon-btn" onclick="setDeviceGrid('normal')" title="Normal">⊞</div>
+                        <div class="icon-btn" onclick="setDeviceGrid('large')" title="Large">⊠</div>
+                        <button class="btn btn-secondary btn-sm" onclick="goToBatchDetails(currentBatchKey)">←
+                            Back</button>
+                    </div>
+                </div>
+                <!-- Device Toolbar -->
+                <div class="dv-toolbar">
+                    <input class="dv-search" id="deviceSearch" placeholder="Filter devices..."
+                        oninput="filterDeviceGrid()">
+                    <div class="filter-bar" style="border:none;padding:0;margin:0;flex:1;" id="deviceFilterBar">
+                        <button class="filter-btn active" data-filter="all"
+                            onclick="setDeviceFilter('all',this)">All</button>
+                        <button class="filter-btn wb" data-filter="WITH_WINBOND"
+                            onclick="setDeviceFilter('WITH_WINBOND',this)">⬡ WB</button>
+                        <button class="filter-btn wob" data-filter="WITHOUT_WINBOND"
+                            onclick="setDeviceFilter('WITHOUT_WINBOND',this)">⬡ WOB</button>
+                        <button class="filter-btn pass" data-filter="PASS"
+                            onclick="setDeviceFilter('PASS',this)">✓</button>
+                        <button class="filter-btn fail" data-filter="FAIL"
+                            onclick="setDeviceFilter('FAIL',this)">✗</button>
+                        <button class="filter-btn active-s" data-filter="ACTIVE"
+                            onclick="setDeviceFilter('ACTIVE',this)">◉</button>
+                        <button class="filter-btn reset-s" data-filter="RESET"
+                            onclick="setDeviceFilter('RESET',this)">↺</button>
+                        <button class="filter-btn unreset-s" data-filter="UNRESET"
+                            onclick="setDeviceFilter('UNRESET',this)">⊘</button>
+                    </div>
+                    <span class="dv-count" id="dvCount">0 devices</span>
+                </div>
+                <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--r12);padding:12px;">
+                    <div class="device-grid" id="deviceGridContainer"></div>
+                </div>
+            </div>
+
+            <!-- FILTERED DEVICES VIEW (from chart click) -->
+            <div id="filteredDevicesPage" class="page">
+                <div class="bc"><a onclick="goHome()">Home</a><span>›</span><span id="filteredPageTitle">Filtered
+                        Devices</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <div style="font-size:16px;font-weight:700" id="filteredDevicesTitle">Filtered Devices</div>
+                    <button class="btn btn-secondary btn-sm" onclick="goHome()">← Back</button>
+                </div>
+                <div style="background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--r12);padding:12px;">
+                    <div class="device-grid" id="filteredDeviceGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELECTION ACTION BAR -->
+        <div class="sel-bar" id="selBar">
+            <span class="sel-count" id="selCount">0 selected</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑 Delete</button>
+            <button class="btn btn-warning btn-sm" onclick="resetSelected()">↺ Reset</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportSelected()">↓ Export</button>
+            <button class="btn btn-sm" style="background:var(--wb-with);color:#fff"
+                onclick="changeWinbondSelected('WITH_WINBOND')">⬡ Set WB</button>
+            <button class="btn btn-sm" style="background:var(--orange);color:#fff"
+                onclick="changeWinbondSelected('WITHOUT_WINBOND')">⬡ Clr WB</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearSelection()">✕</button>
+        </div>
+
+        <!-- LEFT DRAWER -->
+        <div class="overlay" id="leftOverlay" onclick="closeLeftDrawer()"></div>
+        <div class="drw" id="leftDrawer">
+            <div class="drw-hd">
+                <div class="drw-ttl" id="drawerTitle">Device Details</div>
+                <button class="drw-cls" onclick="closeLeftDrawer()">✕</button>
+            </div>
+            <div class="drw-tabs">
+                <button class="drw-tab active" onclick="switchTab('info',this)">Info</button>
+                <button class="drw-tab" onclick="switchTab('edit',this)">Edit</button>
+            </div>
+            <div class="drw-body">
+                <!-- INFO TAB -->
+                <div id="tabInfo">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                        <span style="font-size:11px;color:var(--txt3);">Winbond Type:</span>
+                        <span class="winbond-badge" id="wbBadgeInfo">-</span>
+                    </div>
+                    <div class="info-g">
+                        <div class="info-i">
+                            <div class="info-l">IMEI</div>
+                            <div class="info-v" id="iIMEI">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">ICCID</div>
+                            <div class="info-v" id="iICCID">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">FID</div>
+                            <div class="info-v" id="iFID">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Status</div>
+                            <div class="info-v" id="iStatus">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Battery</div>
+                            <div class="info-v" id="iBattery">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Network</div>
+                            <div class="info-v" id="iNetwork">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Signal</div>
+                            <div class="info-v" id="iSignal">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Temp</div>
+                            <div class="info-v" id="iTemp">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Test Time</div>
+                            <div class="info-v" id="iTime">-</div>
+                        </div>
+                        <div class="info-i">
+                            <div class="info-l">Result</div>
+                            <div class="info-v" id="iResult">-</div>
+                        </div>
+                    </div>
+                    <div class="fg">
+                        <div class="fl">Last Seen</div>
+                        <div style="font-size:11px;color:var(--blue3);font-family:var(--mono);background:var(--bg2);padding:8px;border-radius:var(--r6)"
+                            id="iLastSeen">-</div>
+                    </div>
+                    <div class="fg">
+                        <div class="fl">Logs</div>
+                        <div style="font-size:10px;color:var(--txt2);font-family:var(--mono);background:var(--bg2);padding:8px;border-radius:var(--r6);max-height:100px;overflow-y:auto;line-height:1.6;"
+                            id="iLogs">-</div>
+                    </div>
+                    <div class="fg">
+                        <div class="fl">Raw API Data</div>
+                        <textarea class="fi" id="iRaw" readonly style="font-size:10px;min-height:80px;"></textarea>
+                    </div>
+                </div>
+                <!-- EDIT TAB -->
+                <div id="tabEdit" style="display:none;">
+                    <div class="fg"><label class="fl">IMEI</label><input type="text" class="fi" id="eIMEI"
+                            placeholder="Enter IMEI"></div>
+                    <div class="fg"><label class="fl">ICCID</label><input type="text" class="fi" id="eICCID"
+                            placeholder="Enter ICCID"></div>
+                    <div class="fg"><label class="fl">FID</label><input type="text" class="fi" id="eFID"
+                            placeholder="Enter FID"></div>
+                    <div class="fg">
+                        <label class="fl">Status</label>
+                        <select class="fi" id="eStatus">
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="PASSED">PASSED</option>
+                            <option value="FAILED">FAILED</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="RESET">RESET</option>
+                            <option value="UNRESET">UNRESET</option>
+                        </select>
+                    </div>
+                    <div class="fg">
+                        <label class="fl">Winbond Type</label>
+                        <select class="fi" id="eWinbond">
+                            <option value="WITH_WINBOND">WITH WINBOND</option>
+                            <option value="WITHOUT_WINBOND">WITHOUT WINBOND</option>
+                        </select>
+                    </div>
+                    <div class="fg"><label class="fl">Notes</label><textarea class="fi" id="eNotes"
+                            placeholder="Add notes..."></textarea></div>
+                    <div class="btn-row" style="margin-bottom:10px;">
+                        <button class="btn btn-success" onclick="saveDeviceEdit()">✓ Save</button>
+                        <button class="btn btn-ghost" onclick="closeLeftDrawer()">✕ Cancel</button>
+                    </div>
+                    <div class="btn-row full" style="gap:8px;">
+                        <button class="btn btn-warning" style="margin-bottom:6px;" onclick="resetDevice()">↺ Reset
+                            Device</button>
+                        <button class="btn btn-secondary" onclick="unresetDevice()">⊘ Unreset Device</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT DRAWER ANALYTICS -->
+        <div class="overlay" id="rightOverlay" onclick="closeRightDrawer()"></div>
+        <div class="drw right" id="rightDrawer">
+            <div class="drw-hd">
+                <div class="drw-ttl">📊 Analytics Panel</div>
+                <button class="drw-cls" onclick="closeRightDrawer()">✕</button>
+            </div>
+            <div class="drw-body">
+                <div class="chart-section">
+                    <div class="chart-section-ttl">Device Time Comparison</div>
+                    <div class="analytics-chart"><canvas id="aTimeChart"></canvas></div>
+                </div>
+                <div class="chart-section">
+                    <div class="chart-section-ttl">FID Average Time</div>
+                    <div class="analytics-chart"><canvas id="aFidChart"></canvas></div>
+                </div>
+                <div class="chart-section">
+                    <div class="chart-section-ttl">Winbond vs Non-Winbond</div>
+                    <div class="analytics-chart"><canvas id="aWbChart"></canvas></div>
+                </div>
+                <div class="chart-section">
+                    <div class="chart-section-ttl">Status Distribution</div>
+                    <div class="analytics-chart"><canvas id="aStatusChart"></canvas></div>
+                </div>
+                <div class="chart-section">
+                    <div class="chart-section-ttl">Slowest Devices</div>
+                    <div id="slowestList" style="font-size:11px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODALS -->
+        <!-- Create Batch Modal -->
+        <div class="modal-bg" id="createBatchModal">
+            <div class="modal">
+                <div class="modal-ttl">+ Create New Batch</div>
+                <div class="fg"><label class="fl">Batch Name</label><input type="text" class="fi" id="mbName"
+                        placeholder="e.g., Batch A-001"></div>
+                <div class="fg"><label class="fl">Description</label><textarea class="fi" id="mbDesc"
+                        placeholder="Brief description..."></textarea></div>
+                <div class="fg"><label class="fl">Inner Batches</label><input type="number" class="fi" id="mbInner"
+                        value="3" min="1"></div>
+                <div class="fg"><label class="fl">Devices per Inner Batch</label><input type="number" class="fi"
+                        id="mbDevices" value="20" min="1"></div>
+                <div class="btn-row">
+                    <button class="btn btn-success" onclick="createBatch()">✓ Create</button>
+                    <button class="btn btn-ghost" onclick="closeModal('createBatchModal')">✕ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Batch Modal -->
+        <div class="modal-bg" id="editBatchModal">
+            <div class="modal">
+                <div class="modal-ttl">✎ Edit Batch</div>
+                <input type="hidden" id="ebKey">
+                <div class="fg"><label class="fl">Batch Name</label><input type="text" class="fi" id="ebName"></div>
+                <div class="fg"><label class="fl">Description</label><textarea class="fi" id="ebDesc"></textarea></div>
+                <div class="btn-row">
+                    <button class="btn btn-success" onclick="saveBatchEdit()">✓ Save</button>
+                    <button class="btn btn-ghost" onclick="closeModal('editBatchModal')">✕ Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirm Modal -->
+        <div class="modal-bg" id="confirmModal">
+            <div class="modal confirm-modal">
+                <div class="modal-ttl" id="confirmTitle">Confirm Action</div>
+                <p id="confirmMsg">Are you sure?</p>
+                <div class="confirm-actions">
+                    <button class="btn btn-danger" id="confirmYes">Yes, Delete</button>
+                    <button class="btn btn-ghost" onclick="closeModal('confirmModal')">No, Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+
+        <script>
+            // ============================================================
+            //  STATE
+            // ============================================================
+            let app = {
+                batches: {},
+                theme: localStorage.getItem('theme') || 'dark',
+                homeFilter: 'all',
+                homeTab: 'all',
+                deviceFilter: 'all',
+                selectedDevices: new Set(),
+                currentDevice: null,
+                batchFilters: {}
+            };
+            let currentBatchKey = null;
+            let currentInnerBatchKey = null;
+            let charts = {};
+
+            // ============================================================
+            //  INIT
+            // ============================================================
+            function init() {
+                setTheme(app.theme);
+                generateMockData();
+                renderHome();
+                setupSearch();
+            }
+
+            function generateMockData() {
+                const batchDefs = [
+                    { name: 'Batch A-001', desc: 'Q2 Device Testing — Phase 1', inners: 3, devs: 22 },
+                    { name: 'Batch B-002', desc: 'Hardware Validation Testing', inners: 2, devs: 18 },
+                    { name: 'Batch C-003', desc: 'Network Integration Tests', inners: 4, devs: 15 },
+                    { name: 'Batch D-004', desc: 'Winbond Chipset Verification', inners: 3, devs: 25 }
+                ];
+                batchDefs.forEach((b, bi) => {
+                    const bk = 'batch-' + String(bi + 1).padStart(3, '0');
+                    const innerBatches = {};
+                    for (let i = 0; i < b.inners; i++) {
+                        const ik = 'inner-' + bk + '-' + i;
+                        innerBatches[ik] = { name: 'Sub-Batch ' + String.fromCharCode(65 + bi) + String(i + 1), devices: generateDevices(b.devs) };
+                    }
+                    app.batches[bk] = { name: b.name, description: b.desc, createdDate: new Date(Date.now() - Math.random() * 7 * 864e5), innerBatches };
+                });
+            }
+
+            function generateDevices(count) {
+                const statuses = ['ACTIVE', 'PASSED', 'FAILED', 'PENDING', 'RESET', 'UNRESET'];
+                const results = ['PASS', 'FAIL'];
+                const fids = ['4.0.30', '4.0.31', '4.1.0', '3.9.9', '4.2.0'];
+                const nets = ['LTE', '4G', '3G'];
+                const wbTypes = ['WITH_WINBOND', 'WITHOUT_WINBOND'];
+                const devs = [];
+                for (let i = 0; i < count; i++) {
+                    devs.push({
+                        id: Date.now() + Math.random(),
+                        imei: '86832908' + String(Math.floor(Math.random() * 9999999)).padStart(7, '0'),
+                        iccid: '89911012000' + String(Math.floor(Math.random() * 99999999)).padStart(8, '0'),
+                        fid: fids[Math.floor(Math.random() * fids.length)],
+                        status: statuses[Math.floor(Math.random() * statuses.length)],
+                        result: results[Math.floor(Math.random() * results.length)],
+                        testingTime: Math.floor(Math.random() * 280) + 30,
+                        battery: (3.5 + Math.random()).toFixed(1) + 'V',
+                        network: nets[Math.floor(Math.random() * nets.length)],
+                        signal: '-' + (Math.floor(Math.random() * 30) + 60) + ' dBm',
+                        temperature: Math.floor(Math.random() * 30) + 25 + '°C',
+                        lastSeen: new Date(Date.now() - Math.random() * 864e5),
+                        winbond_type: wbTypes[Math.floor(Math.random() * wbTypes.length)],
+                        notes: ''
+                    });
+                }
+                return devs;
+            }
+
+            // ============================================================
+            //  NAVIGATION
+            // ============================================================
+            function switchPage(id) {
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(id).classList.add('active');
+                clearSelection();
+            }
+            function goHome() { switchPage('homePage'); currentBatchKey = null; currentInnerBatchKey = null; renderHome(); }
+            function goToBatchDetails(bk) { currentBatchKey = bk; switchPage('batchDetailsPage'); renderBatchDetails(bk); }
+            function goToDeviceView(bk, ik) { currentBatchKey = bk; currentInnerBatchKey = ik; switchPage('deviceViewPage'); renderDeviceView(bk, ik); }
+
+            // ============================================================
+            //  HOME RENDER
+            // ============================================================
+            function renderHome() {
+                updateHomeStats();
+                renderBatchCards();
+                renderHomeCharts();
+                updateTopTabBadges();
+            }
+
+            function getAllDevices(filter) {
+                let devs = [];
+                Object.values(app.batches).forEach(b => Object.values(b.innerBatches).forEach(ib => devs.push(...ib.devices)));
+                if (!filter || filter === 'all') return devs;
+                return devs.filter(d => {
+                    if (filter === 'WITH_WINBOND') return d.winbond_type === 'WITH_WINBOND';
+                    if (filter === 'WITHOUT_WINBOND') return d.winbond_type === 'WITHOUT_WINBOND';
+                    if (filter === 'PASS') return d.result === 'PASS';
+                    if (filter === 'FAIL') return d.result === 'FAIL';
+                    if (filter === 'ACTIVE') return d.status === 'ACTIVE';
+                    if (filter === 'RESET') return d.status === 'RESET';
+                    if (filter === 'UNRESET') return d.status === 'UNRESET';
+                    return true;
+                });
+            }
+
+            function updateHomeStats() {
+                const all = getAllDevices();
+                const filtered = getAllDevices(app.homeFilter);
+                const pass = filtered.filter(d => d.result === 'PASS').length;
+                const withWB = all.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                const withoutWB = all.filter(d => d.winbond_type === 'WITHOUT_WINBOND').length;
+                const avgTime = all.length ? Math.round(all.reduce((a, d) => a + d.testingTime, 0) / all.length) : 0;
+                document.getElementById('stBatches').textContent = Object.keys(app.batches).length;
+                document.getElementById('stDevices').textContent = filtered.length;
+                document.getElementById('stPassRate').textContent = filtered.length ? Math.round(pass / filtered.length * 100) + '%' : '0%';
+                document.getElementById('stAvgTime').textContent = avgTime + 'm';
+                document.getElementById('stWithWB').textContent = withWB;
+                document.getElementById('stWithoutWB').textContent = withoutWB;
+            }
+
+            function setHomeFilter(f, el) {
+                app.homeFilter = f;
+                app.homeTab = f;
+                document.querySelectorAll('#homeFilterBar .filter-btn').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+                // Sync top tabs
+                document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
+                const tt = document.querySelector(`.top-tab[data-tab="${f}"]`);
+                if (tt) tt.classList.add('active');
+                renderHome();
+            }
+
+            // ============================================================
+            //  BATCH CARDS
+            // ============================================================
+            function renderBatchCards() {
+                const container = document.getElementById('batchCardsContainer');
+                const keys = Object.keys(app.batches);
+                document.getElementById('batchCountLabel').textContent = keys.length + ' batches';
+                container.innerHTML = keys.map(bk => batchCardHTML(bk)).join('');
+            }
+
+            function getBatchFilteredDevs(bk, batchFilter) {
+                const b = app.batches[bk];
+                let allDevs = [];
+                Object.values(b.innerBatches).forEach(ib => allDevs.push(...ib.devices));
+                if (!batchFilter || batchFilter === 'all') return allDevs;
+                if (batchFilter === 'PASS') return allDevs.filter(d => d.result === 'PASS');
+                if (batchFilter === 'FAIL') return allDevs.filter(d => d.result === 'FAIL');
+                if (batchFilter === 'ACTIVE') return allDevs.filter(d => d.status === 'ACTIVE');
+                if (batchFilter === 'WITH_WINBOND') return allDevs.filter(d => d.winbond_type === 'WITH_WINBOND');
+                if (batchFilter === 'WITHOUT_WINBOND') return allDevs.filter(d => d.winbond_type === 'WITHOUT_WINBOND');
+                return allDevs;
+            }
+
+            function batchCardHTML(bk) {
+                const b = app.batches[bk];
+                const batchFilter = app.batchFilters[bk] || 'all';
+                let allDevs = [];
+                Object.values(b.innerBatches).forEach(ib => allDevs.push(...ib.devices));
+                const dispDevs = getBatchFilteredDevs(bk, batchFilter);
+                const total = allDevs.length;
+                const passed = allDevs.filter(d => d.result === 'PASS').length;
+                const failed = allDevs.filter(d => d.result === 'FAIL').length;
+                const active = allDevs.filter(d => d.status === 'ACTIVE').length;
+                const withWB = allDevs.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                const withoutWB = allDevs.filter(d => d.winbond_type === 'WITHOUT_WINBOND').length;
+                const avgT = total ? Math.round(allDevs.reduce((a, d) => a + d.testingTime, 0) / total) : 0;
+                const pct = total ? Math.round(passed / total * 100) : 0;
+                const ibCount = Object.keys(b.innerBatches).length;
+
+                const miniTabs = [
+                    { key: 'all', label: 'All', cls: '' },
+                    { key: 'PASS', label: 'Pass', cls: 't-pass' },
+                    { key: 'FAIL', label: 'Fail', cls: 't-fail' },
+                    { key: 'ACTIVE', label: 'Active', cls: 't-active' },
+                    { key: 'WITH_WINBOND', label: 'WB', cls: 't-wb' },
+                    { key: 'WITHOUT_WINBOND', label: 'WOB', cls: 't-wob' }
+                ].map(t => `<button class="bc-mini-tab ${t.cls} ${batchFilter === t.key ? 'active' : ''}" onclick="setBatchMiniFilter(event,'${bk}','${t.key}')">${t.label}</button>`).join('');
+
+                return `<div class="batch-card" onclick="handleBatchCardClick(event,'${bk}')" style="cursor:pointer;">
+        <div class="bc-head">
+            <div>
+                <div class="bc-name">${b.name}</div>
+                <div class="bc-desc">${b.description || 'No description'}</div>
+            </div>
+            <div class="bc-status"></div>
+        </div>
+        <div class="bc-stats">
+            <div class="bc-stat"><div class="bc-sv">${total}</div><div class="bc-sl">Devices</div></div>
+            <div class="bc-stat"><div class="bc-sv" style="color:var(--green)">${passed}</div><div class="bc-sl">Passed</div></div>
+            <div class="bc-stat"><div class="bc-sv" style="color:var(--red)">${failed}</div><div class="bc-sl">Failed</div></div>
+            <div class="bc-stat"><div class="bc-sv" style="color:var(--amber)">${active}</div><div class="bc-sl">Active</div></div>
+            <div class="bc-stat"><div class="bc-sv" style="color:var(--cyan2)">${avgT}m</div><div class="bc-sl">Avg Time</div></div>
+            <div class="bc-stat"><div class="bc-sv" style="color:var(--txt2)">${ibCount}</div><div class="bc-sl">Sub-Btch</div></div>
+        </div>
+        <div class="bc-wb">
+            <div class="bc-wb-item bc-wb-w"><span>⬡ W/ Winbond</span><strong>${withWB}</strong></div>
+            <div class="bc-wb-item bc-wb-wo"><span>⬡ W/O Winbond</span><strong>${withoutWB}</strong></div>
+        </div>
+        <div class="bc-prog"><div class="bc-prog-fill" style="width:${pct}%"></div></div>
+        <div class="bc-mini-tabs">${miniTabs}</div>
+        ${batchFilter !== 'all' ? `<div style="font-size:10px;color:var(--txt3);margin-bottom:8px;">Showing <strong style="color:var(--blue3)">${dispDevs.length}</strong> of ${total} devices</div>` : ''}
+        <div class="bc-actions" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-xs" onclick="showEditBatchModal('${bk}')">✎ Edit</button>
+            <button class="btn btn-danger btn-xs" onclick="confirmDeleteBatch('${bk}')">🗑 Delete</button>
+            <div class="export-wrap">
+                <button class="btn btn-ghost btn-xs" onclick="toggleExportMenu(event,'${bk}')">↓ Export ▾</button>
+                <div class="export-menu" id="exportMenu_${bk}">
+                    <div class="export-opt" onclick="exportBatch('${bk}','csv')">📄 CSV</div>
+                    <div class="export-opt" onclick="exportBatch('${bk}','json')">{ } JSON</div>
+                    <div class="export-opt" onclick="exportBatch('${bk}','pdf')">📑 PDF</div>
+                </div>
+            </div>
+            <button class="btn btn-ghost btn-xs" onclick="showBatchAnalytics('${bk}')">📊 Analytics</button>
+        </div>
+    </div>`;
+            }
+
+            // ============================================================
+            //  HOME CHARTS
+            // ============================================================
+            function renderHomeCharts() {
+                const all = getAllDevices();
+                renderWBPieChart(all);
+                renderStatusChart(all);
+                renderFIDAvgChart(all);
+                renderTopTimeChart(all);
+            }
+
+            function renderWBPieChart(devs) {
+                const withWB = devs.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                const withoutWB = devs.filter(d => d.winbond_type === 'WITHOUT_WINBOND').length;
+                const ctx = document.getElementById('wbPieChart');
+                if (!ctx) return;
+                if (charts.wbPie) charts.wbPie.destroy();
+                charts.wbPie = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['With Winbond', 'Without Winbond'],
+                        datasets: [{ data: [withWB, withoutWB], backgroundColor: ['rgba(59,130,246,.8)', 'rgba(249,115,22,.8)'], borderColor: ['#3b82f6', '#f97316'], borderWidth: 2 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+                        onClick(e, els) {
+                            if (!els.length) return;
+                            const label = ['WITH_WINBOND', 'WITHOUT_WINBOND'][els[0].index];
+                            openFilteredDevicesPage(label, 'Winbond: ' + ['With Winbond', 'Without Winbond'][els[0].index]);
+                        }
+                    }
+                });
+            }
+
+            function renderStatusChart(devs) {
+                const statuses = ['PASS', 'FAIL', 'ACTIVE', 'PENDING', 'RESET', 'UNRESET'];
+                const colors = ['rgba(16,185,129,.8)', 'rgba(239,68,68,.8)', 'rgba(245,158,11,.8)', 'rgba(100,116,139,.8)', 'rgba(124,58,237,.8)', 'rgba(6,182,212,.8)'];
+                const counts = statuses.map(s => devs.filter(d => d.result === s || d.status === s).length);
+                const ctx = document.getElementById('statusChart');
+                if (!ctx) return;
+                if (charts.status) charts.status.destroy();
+                charts.status = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: statuses, datasets: [{ label: 'Count', data: counts, backgroundColor: colors, borderWidth: 0, borderRadius: 4 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1a2840' } }, x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } },
+                        onClick(e, els) {
+                            if (!els.length) return;
+                            const s = statuses[els[0].index];
+                            openFilteredDevicesPage(s, 'Status: ' + s);
+                        }
+                    }
+                });
+            }
+
+            function renderFIDAvgChart(devs) {
+                const fidMap = {};
+                devs.forEach(d => { fidMap[d.fid] = (fidMap[d.fid] || []).concat(d.testingTime); });
+                const fidLabels = Object.keys(fidMap);
+                const fidAvgs = fidLabels.map(f => Math.round(fidMap[f].reduce((a, b) => a + b, 0) / fidMap[f].length));
+                const ctx = document.getElementById('fidAvgChart');
+                if (!ctx) return;
+                if (charts.fidAvg) charts.fidAvg.destroy();
+                charts.fidAvg = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: fidLabels, datasets: [{ label: 'Avg Time (min)', data: fidAvgs, backgroundColor: 'rgba(6,182,212,.7)', borderColor: '#06b6d4', borderWidth: 1, borderRadius: 4 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1a2840' } }, x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } },
+                        onClick(e, els) {
+                            if (!els.length) return;
+                            const fid = fidLabels[els[0].index];
+                            openFilteredDevicesPage('fid:' + fid, 'FID: ' + fid);
+                        }
+                    }
+                });
+            }
+
+            function renderTopTimeChart(devs) {
+                const top = [...devs].sort((a, b) => b.testingTime - a.testingTime).slice(0, 8);
+                const ctx = document.getElementById('topTimeChart');
+                if (!ctx) return;
+                if (charts.topTime) charts.topTime.destroy();
+                charts.topTime = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: top.map(d => d.imei.slice(-4)),
+                        datasets: [{ label: 'Time (min)', data: top.map(d => d.testingTime), backgroundColor: top.map(d => d.result === 'PASS' ? 'rgba(16,185,129,.7)' : 'rgba(239,68,68,.7)'), borderWidth: 0, borderRadius: 4 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                        plugins: { legend: { display: false } },
+                        scales: { x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: '#1a2840' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } },
+                        onClick(e, els) {
+                            if (!els.length) return;
+                            const d = top[els[0].index];
+                            openFilteredDevicesPage('imei:' + d.imei, 'Device: ' + d.imei.slice(-6));
+                        }
+                    }
+                });
+            }
+
+            // ============================================================
+            //  FILTERED DEVICES PAGE (chart click)
+            // ============================================================
+            function openFilteredDevicesPage(filterKey, label) {
+                const all = getAllDevices();
+                let filtered = all;
+                if (filterKey === 'WITH_WINBOND') filtered = all.filter(d => d.winbond_type === 'WITH_WINBOND');
+                else if (filterKey === 'WITHOUT_WINBOND') filtered = all.filter(d => d.winbond_type === 'WITHOUT_WINBOND');
+                else if (filterKey === 'PASS') filtered = all.filter(d => d.result === 'PASS');
+                else if (filterKey === 'FAIL') filtered = all.filter(d => d.result === 'FAIL');
+                else if (filterKey === 'ACTIVE') filtered = all.filter(d => d.status === 'ACTIVE');
+                else if (filterKey === 'RESET') filtered = all.filter(d => d.status === 'RESET');
+                else if (filterKey === 'UNRESET') filtered = all.filter(d => d.status === 'UNRESET');
+                else if (filterKey.startsWith('fid:')) { const fid = filterKey.split(':')[1]; filtered = all.filter(d => d.fid === fid); }
+                else if (filterKey.startsWith('imei:')) { const im = filterKey.split(':')[1]; filtered = all.filter(d => d.imei === im); }
+                document.getElementById('filteredPageTitle').textContent = label + ' (' + filtered.length + ')';
+                document.getElementById('filteredDevicesTitle').textContent = label;
+                document.getElementById('filteredDeviceGrid').innerHTML = filtered.map(d => deviceCardHTML(d, null, null, true)).join('');
+                switchPage('filteredDevicesPage');
+            }
+
+            // ============================================================
+            //  BATCH DETAILS
+            // ============================================================
+            function renderBatchDetails(bk) {
+                const b = app.batches[bk];
+                document.getElementById('batchDetailsTitle').textContent = b.name;
+                document.getElementById('bcBatchName').textContent = b.name;
+                const container = document.getElementById('innerBatchContainer');
+                container.innerHTML = Object.keys(b.innerBatches).map(ik => {
+                    const ib = b.innerBatches[ik];
+                    const total = ib.devices.length;
+                    const passed = ib.devices.filter(d => d.result === 'PASS').length;
+                    const withWB = ib.devices.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                    const withoutWB = ib.devices.filter(d => d.winbond_type === 'WITHOUT_WINBOND').length;
+                    const avgT = total ? Math.round(ib.devices.reduce((a, d) => a + d.testingTime, 0) / total) : 0;
+                    return `<div class="ib-card">
+            <div class="ib-name">${ib.name}</div>
+            <div class="ib-row"><span>${total} devices</span><span style="color:var(--green)">${passed} passed</span></div>
+            <div class="ib-row"><span style="color:var(--wb-with-text)">⬡ ${withWB} WB</span><span style="color:var(--wb-without-text)">⬡ ${withoutWB} WOB</span></div>
+            <div class="ib-row"><span style="color:var(--txt3)">Avg: ${avgT}m</span></div>
+            <div style="display:flex;gap:6px;margin-top:10px;">
+                <button class="btn btn-primary btn-xs" onclick="goToDeviceView('${bk}','${ik}')">Open</button>
+                <button class="btn btn-secondary btn-xs" onclick="showEditIBModal('${bk}','${ik}')">Edit</button>
+                <button class="btn btn-danger btn-xs" onclick="confirmDeleteIB('${bk}','${ik}')">Delete</button>
+                <button class="btn btn-ghost btn-xs" onclick="showIBAnalytics('${bk}','${ik}')">📊</button>
+            </div>
+        </div>`;
+                }).join('');
+            }
+
+            function setIBGrid(mode, el) {
+                document.querySelectorAll('.gt-btn').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+                const g = document.getElementById('innerBatchContainer');
+                g.className = 'ib-grid' + (mode === 'auto' ? '' : ' ' + mode);
+            }
+
+            // ============================================================
+            //  DEVICE VIEW
+            // ============================================================
+            function renderDeviceView(bk, ik) {
+                const b = app.batches[bk];
+                const ib = b.innerBatches[ik];
+                document.getElementById('deviceViewTitle').textContent = ib.name + ' — Devices';
+                document.getElementById('bcBatch2').textContent = b.name;
+                document.getElementById('bcInnerBatch').textContent = ib.name;
+                app.deviceFilter = 'all';
+                document.querySelectorAll('#deviceFilterBar .filter-btn').forEach(b => b.classList.remove('active'));
+                document.querySelector('#deviceFilterBar [data-filter=all]').classList.add('active');
+                renderDeviceCards(bk, ik);
+            }
+
+            function renderDeviceCards(bk, ik) {
+                const ib = app.batches[bk].innerBatches[ik];
+                const q = (document.getElementById('deviceSearch') || {}).value || '';
+                let devs = ib.devices.filter(d => {
+                    if (q && !d.imei.includes(q) && !d.iccid.includes(q) && !d.fid.includes(q)) return false;
+                    const f = app.deviceFilter;
+                    if (f === 'all') return true;
+                    if (f === 'WITH_WINBOND') return d.winbond_type === 'WITH_WINBOND';
+                    if (f === 'WITHOUT_WINBOND') return d.winbond_type === 'WITHOUT_WINBOND';
+                    if (f === 'PASS') return d.result === 'PASS';
+                    if (f === 'FAIL') return d.result === 'FAIL';
+                    if (f === 'ACTIVE') return d.status === 'ACTIVE';
+                    if (f === 'RESET') return d.status === 'RESET';
+                    if (f === 'UNRESET') return d.status === 'UNRESET';
+                    return true;
+                });
+                document.getElementById('dvCount').textContent = devs.length + ' / ' + ib.devices.length;
+                document.getElementById('deviceGridContainer').innerHTML = devs.map(d => deviceCardHTML(d, bk, ik)).join('');
+            }
+
+            function deviceCardHTML(d, bk, ik, readOnly = false) {
+                const wb = d.winbond_type === 'WITH_WINBOND';
+                const status = (d.result || d.status || '').toLowerCase();
+                const sel = app.selectedDevices.has(d.id) ? 'selected' : '';
+                const click = readOnly ? `onclick="openDeviceInfoOnly(${JSON.stringify(d).replace(/"/g, '&quot;')})"` : `onclick="openDeviceDrawer('${bk}','${ik}','${d.id}')"`;
+                const chkClick = bk ? `oncontextmenu="toggleSelect('${d.id}');return false;"` : '';
+                const delBtn = (bk && ik && !readOnly) ? `<div class="dc-del" onclick="event.stopPropagation();confirmDeleteDevice('${bk}','${ik}','${d.id}')" title="Delete device">✕</div>` : '';
+                return `<div class="dc ${wb ? 'wb' : 'wob'} s-${d.result ? d.result.toLowerCase() : d.status.toLowerCase()} ${sel}" ${click} ${chkClick} data-id="${d.id}">
+        ${delBtn}
+        <div class="dc-chk">✓</div>
+        <div>
+            <div class="dc-fid">${d.fid}</div>
+            <div class="dc-time">${d.testingTime}m</div>
+        </div>
+        <div class="dc-bot">
+            <div class="dc-dot ${status}"></div>
+            <div class="dc-wb-badge ${wb ? 'wb' : 'wob'}">${wb ? 'WB' : 'WOB'}</div>
+        </div>
+    </div>`;
+            }
+
+            function setDeviceFilter(f, el) {
+                app.deviceFilter = f;
+                document.querySelectorAll('#deviceFilterBar .filter-btn').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+                renderDeviceCards(currentBatchKey, currentInnerBatchKey);
+            }
+
+            function filterDeviceGrid() { renderDeviceCards(currentBatchKey, currentInnerBatchKey); }
+
+            function setDeviceGrid(size) {
+                const g = document.getElementById('deviceGridContainer');
+                g.className = 'device-grid' + (size === 'normal' ? '' : ' ' + size);
+            }
+
+            // ============================================================
+            //  DEVICE SELECTION
+            // ============================================================
+            function toggleSelect(id) {
+                if (app.selectedDevices.has(id)) app.selectedDevices.delete(id);
+                else app.selectedDevices.add(id);
+                updateSelectionUI();
+            }
+
+            function updateSelectionUI() {
+                const count = app.selectedDevices.size;
+                document.getElementById('selCount').textContent = count + ' selected';
+                const bar = document.getElementById('selBar');
+                if (count > 0) bar.classList.add('visible');
+                else bar.classList.remove('visible');
+                document.querySelectorAll('.dc').forEach(el => {
+                    const id = el.dataset.id;
+                    if (app.selectedDevices.has(id)) el.classList.add('selected');
+                    else el.classList.remove('selected');
+                });
+            }
+
+            function clearSelection() { app.selectedDevices.clear(); updateSelectionUI(); }
+
+            function deleteSelected() {
+                if (!app.selectedDevices.size) return;
+                showConfirm('Delete Selected', 'Delete ' + app.selectedDevices.size + ' selected devices?', () => {
+                    if (currentBatchKey && currentInnerBatchKey) {
+                        const ib = app.batches[currentBatchKey].innerBatches[currentInnerBatchKey];
+                        ib.devices = ib.devices.filter(d => !app.selectedDevices.has(d.id));
+                        clearSelection();
+                        renderDeviceCards(currentBatchKey, currentInnerBatchKey);
+                        toast('Deleted ' + app.selectedDevices.size + ' devices', 'var(--red)');
+                    }
+                });
+            }
+
+            function resetSelected() {
+                if (!currentBatchKey || !currentInnerBatchKey) return;
+                const ib = app.batches[currentBatchKey].innerBatches[currentInnerBatchKey];
+                ib.devices.forEach(d => { if (app.selectedDevices.has(d.id)) d.status = 'RESET'; });
+                clearSelection(); renderDeviceCards(currentBatchKey, currentInnerBatchKey);
+                toast('Reset ' + app.selectedDevices.size + ' devices', 'var(--purple)');
+            }
+
+            function exportSelected() {
+                if (!currentBatchKey || !currentInnerBatchKey) return;
+                const ib = app.batches[currentBatchKey].innerBatches[currentInnerBatchKey];
+                const sel = ib.devices.filter(d => app.selectedDevices.has(d.id));
+                const data = JSON.stringify(sel, null, 2);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+                a.download = 'export-devices.json'; a.click();
+                toast('Exported ' + sel.length + ' devices', 'var(--green)');
+            }
+
+            function changeWinbondSelected(type) {
+                if (!currentBatchKey || !currentInnerBatchKey) return;
+                const ib = app.batches[currentBatchKey].innerBatches[currentInnerBatchKey];
+                ib.devices.forEach(d => { if (app.selectedDevices.has(d.id)) d.winbond_type = type; });
+                renderDeviceCards(currentBatchKey, currentInnerBatchKey);
+                toast('Updated Winbond type', 'var(--cyan)');
+            }
+
+            // ============================================================
+            //  DEVICE DRAWER
+            // ============================================================
+            function openDeviceDrawer(bk, ik, id) {
+                const d = app.batches[bk].innerBatches[ik].devices.find(x => x.id == id);
+                if (!d) return;
+                fillDrawer(d);
+                app.currentDevice = { bk, ik, id };
+                document.getElementById('leftOverlay').classList.add('on');
+                document.getElementById('leftDrawer').classList.add('on');
+            }
+
+            function openDeviceInfoOnly(d) {
+                fillDrawer(d);
+                app.currentDevice = null;
+                document.getElementById('leftOverlay').classList.add('on');
+                document.getElementById('leftDrawer').classList.add('on');
+            }
+
+            function fillDrawer(d) {
+                const wb = d.winbond_type === 'WITH_WINBOND';
+                const badge = document.getElementById('wbBadgeInfo');
+                badge.className = 'winbond-badge ' + (wb ? 'with' : 'without');
+                badge.textContent = (wb ? '⬡ With Winbond' : '⬡ Without Winbond');
+                document.getElementById('iIMEI').textContent = d.imei;
+                document.getElementById('iICCID').textContent = d.iccid;
+                document.getElementById('iFID').textContent = d.fid;
+                document.getElementById('iStatus').textContent = d.status;
+                document.getElementById('iBattery').textContent = d.battery;
+                document.getElementById('iNetwork').textContent = d.network;
+                document.getElementById('iSignal').textContent = d.signal;
+                document.getElementById('iTemp').textContent = d.temperature;
+                document.getElementById('iTime').textContent = d.testingTime + ' min';
+                document.getElementById('iResult').textContent = d.result;
+                document.getElementById('iLastSeen').textContent = new Date(d.lastSeen).toLocaleString();
+                document.getElementById('iLogs').textContent = `[${new Date(d.lastSeen).toLocaleTimeString()}] Status: ${d.status}\n[${new Date(d.lastSeen).toLocaleTimeString()}] Result: ${d.result}\n[${new Date(d.lastSeen).toLocaleTimeString()}] Testing complete: ${d.testingTime}m`;
+                document.getElementById('iRaw').value = JSON.stringify(d, null, 2);
+                document.getElementById('eIMEI').value = d.imei;
+                document.getElementById('eICCID').value = d.iccid;
+                document.getElementById('eFID').value = d.fid;
+                document.getElementById('eStatus').value = d.status;
+                document.getElementById('eWinbond').value = d.winbond_type;
+                document.getElementById('eNotes').value = d.notes || '';
+                document.getElementById('drawerTitle').textContent = 'IMEI: ...' + d.imei.slice(-6);
+            }
+
+            function closeLeftDrawer() {
+                document.getElementById('leftOverlay').classList.remove('on');
+                document.getElementById('leftDrawer').classList.remove('on');
+            }
+
+            function switchTab(tab, el) {
+                document.querySelectorAll('.drw-tab').forEach(t => t.classList.remove('active'));
+                el.classList.add('active');
+                document.getElementById('tabInfo').style.display = tab === 'info' ? 'block' : 'none';
+                document.getElementById('tabEdit').style.display = tab === 'edit' ? 'block' : 'none';
+            }
+
+            function saveDeviceEdit() {
+                if (!app.currentDevice) return;
+                const { bk, ik, id } = app.currentDevice;
+                const d = app.batches[bk].innerBatches[ik].devices.find(x => x.id == id);
+                if (!d) return;
+                d.imei = document.getElementById('eIMEI').value;
+                d.iccid = document.getElementById('eICCID').value;
+                d.fid = document.getElementById('eFID').value;
+                d.status = document.getElementById('eStatus').value;
+                d.winbond_type = document.getElementById('eWinbond').value;
+                d.notes = document.getElementById('eNotes').value;
+                closeLeftDrawer();
+                renderDeviceCards(bk, ik);
+                toast('Device updated', 'var(--green)');
+            }
+
+            function resetDevice() { toast('↺ Device reset initiated', 'var(--purple)'); }
+            function unresetDevice() { toast('⊘ Device unreset initiated', 'var(--cyan)'); }
+
+            // ============================================================
+            //  RIGHT DRAWER ANALYTICS
+            // ============================================================
+            function toggleRightDrawer() {
+                const drw = document.getElementById('rightDrawer');
+                if (drw.classList.contains('on')) closeRightDrawer();
+                else { openRightDrawer(); }
+            }
+            function openRightDrawer() {
+                document.getElementById('rightOverlay').classList.add('on');
+                document.getElementById('rightDrawer').classList.add('on');
+                renderAnalyticsDrawer();
+            }
+            function closeRightDrawer() {
+                document.getElementById('rightOverlay').classList.remove('on');
+                document.getElementById('rightDrawer').classList.remove('on');
+            }
+
+            function showBatchAnalytics(bk) { openRightDrawer(); renderAnalyticsDrawer(bk); }
+            function showIBAnalytics(bk, ik) { openRightDrawer(); renderAnalyticsDrawer(bk, ik); }
+
+            function renderAnalyticsDrawer(bk, ik) {
+                let devs = [];
+                if (bk && ik) devs = app.batches[bk].innerBatches[ik].devices;
+                else if (bk) Object.values(app.batches[bk].innerBatches).forEach(ib => devs.push(...ib.devices));
+                else getAllDevices().forEach(d => devs.push(d));
+
+                const ctx1 = document.getElementById('aTimeChart'), ctx2 = document.getElementById('aFidChart'), ctx3 = document.getElementById('aWbChart'), ctx4 = document.getElementById('aStatusChart');
+
+                if (charts.aTime) charts.aTime.destroy();
+                charts.aTime = new Chart(ctx1, { type: 'bar', data: { labels: devs.slice(0, 12).map(d => d.imei.slice(-3)), datasets: [{ label: 'Time', data: devs.slice(0, 12).map(d => d.testingTime), backgroundColor: devs.slice(0, 12).map(d => d.result === 'PASS' ? 'rgba(16,185,129,.7)' : 'rgba(239,68,68,.7)'), borderWidth: 0, borderRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1a2840' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
+
+                const fidMap = {};
+                devs.forEach(d => { fidMap[d.fid] = (fidMap[d.fid] || []).concat(d.testingTime); });
+                if (charts.aFid) charts.aFid.destroy();
+                charts.aFid = new Chart(ctx2, { type: 'line', data: { labels: Object.keys(fidMap), datasets: [{ label: 'Avg', data: Object.entries(fidMap).map(([, t]) => Math.round(t.reduce((a, b) => a + b, 0) / t.length)), borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,.1)', borderWidth: 2, fill: true, tension: .4, pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1a2840' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
+
+                const wbCount = devs.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                if (charts.aWb) charts.aWb.destroy();
+                charts.aWb = new Chart(ctx3, { type: 'doughnut', data: { labels: ['With WB', 'Without WB'], datasets: [{ data: [wbCount, devs.length - wbCount], backgroundColor: ['rgba(59,130,246,.8)', 'rgba(249,115,22,.8)'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } } });
+
+                const sts = ['PASS', 'FAIL', 'ACTIVE', 'PENDING', 'RESET', 'UNRESET'];
+                const sc = sts.map(s => devs.filter(d => d.result === s || d.status === s).length);
+                if (charts.aSt) charts.aSt.destroy();
+                charts.aSt = new Chart(ctx4, { type: 'radar', data: { labels: sts, datasets: [{ label: 'Count', data: sc, backgroundColor: 'rgba(59,130,246,.15)', borderColor: '#3b82f6', borderWidth: 2, pointBackgroundColor: '#3b82f6', pointRadius: 3 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { r: { ticks: { color: '#64748b', font: { size: 9 }, backdropColor: 'transparent' }, grid: { color: '#1a2840' }, pointLabels: { color: '#94a3b8', font: { size: 9 } } } } } });
+
+                const slowest = [...devs].sort((a, b) => b.testingTime - a.testingTime).slice(0, 5);
+                document.getElementById('slowestList').innerHTML = slowest.map(d => `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;margin-bottom:4px;background:var(--bg2);border-radius:var(--r6);border-left:2px solid var(--red)"><div><div style="font-size:11px;font-weight:600;">...${d.imei.slice(-6)}</div><div style="font-size:9px;color:var(--txt3)">${d.fid} | ${d.winbond_type === 'WITH_WINBOND' ? 'WB' : 'WOB'}</div></div><div style="font-size:12px;font-weight:700;color:var(--red)">${d.testingTime}m</div></div>`).join('');
+            }
+
+            // ============================================================
+            //  TOP NAV TABS
+            // ============================================================
+            function updateTopTabBadges() {
+                const all = getAllDevices();
+                const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+                set('tbAll', all.length);
+                set('tbWB', all.filter(d => d.winbond_type === 'WITH_WINBOND').length);
+                set('tbWOB', all.filter(d => d.winbond_type === 'WITHOUT_WINBOND').length);
+                set('tbPass', all.filter(d => d.result === 'PASS').length);
+                set('tbFail', all.filter(d => d.result === 'FAIL').length);
+                set('tbActive', all.filter(d => d.status === 'ACTIVE').length);
+                set('tbReset', all.filter(d => d.status === 'RESET').length);
+                set('tbUnreset', all.filter(d => d.status === 'UNRESET').length);
+                set('tbLive', all.filter(d => d.status === 'ACTIVE').length);
+            }
+
+            function setTopTab(tab, el) {
+                app.homeTab = tab;
+                document.querySelectorAll('.top-tab').forEach(b => b.classList.remove('active'));
+                el.classList.add('active');
+                if (tab === 'analytics') { toggleRightDrawer(); return; }
+                if (tab === 'live') {
+                    app.homeFilter = 'ACTIVE';
+                    document.querySelectorAll('#homeFilterBar .filter-btn').forEach(b => b.classList.remove('active'));
+                    const af = document.querySelector('#homeFilterBar [data-filter=ACTIVE]');
+                    if (af) af.classList.add('active');
+                } else {
+                    app.homeFilter = tab;
+                    document.querySelectorAll('#homeFilterBar .filter-btn').forEach(b => b.classList.remove('active'));
+                    const af = document.querySelector(`#homeFilterBar [data-filter=${tab}]`);
+                    if (af) af.classList.add('active');
+                }
+                renderHome();
+            }
+
+            // ============================================================
+            //  BATCH CARD CLICK (open on full card click)
+            // ============================================================
+            function handleBatchCardClick(e, bk) {
+                // Only open if click wasn't on a button/interactive element
+                if (e.target.closest('button') || e.target.closest('.export-menu') || e.target.closest('.bc-mini-tab')) return;
+                goToBatchDetails(bk);
+            }
+
+            // ============================================================
+            //  BATCH MINI FILTER TABS
+            // ============================================================
+            function setBatchMiniFilter(e, bk, filter) {
+                e.stopPropagation();
+                app.batchFilters[bk] = filter;
+                renderBatchCards();
+                updateHomeStats();
+                renderHomeCharts();
+            }
+
+            // ============================================================
+            //  INDIVIDUAL DEVICE DELETE
+            // ============================================================
+            function confirmDeleteDevice(bk, ik, id) {
+                showConfirm('Delete Device', 'Are you sure you want to delete this device?', () => {
+                    const ib = app.batches[bk].innerBatches[ik];
+                    ib.devices = ib.devices.filter(d => String(d.id) !== String(id));
+                    renderDeviceCards(bk, ik);
+                    updateHomeStats();
+                    renderHomeCharts();
+                    renderBatchCards();
+                    toast('✓ Device deleted', 'var(--green)');
+                });
+            }
+
+            // ============================================================
+            //  EXPORT
+            // ============================================================
+            let _exportMenuOpen = null;
+
+            function toggleExportMenu(e, bk) {
+                e.stopPropagation();
+                const menu = document.getElementById('exportMenu_' + bk);
+                const isOpen = menu.classList.contains('open');
+                // Close all menus
+                document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+                if (!isOpen) { menu.classList.add('open'); _exportMenuOpen = bk; }
+                else _exportMenuOpen = null;
+            }
+
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+                _exportMenuOpen = null;
+            });
+
+            function getExportDevices(bk) {
+                const filter = app.batchFilters[bk] || 'all';
+                return getBatchFilteredDevs(bk, filter);
+            }
+
+            function exportBatch(bk, format) {
+                document.querySelectorAll('.export-menu.open').forEach(m => m.classList.remove('open'));
+                const b = app.batches[bk];
+                const devs = getExportDevices(bk);
+                const filter = app.batchFilters[bk] || 'all';
+                const allDevs = getBatchFilteredDevs(bk, 'all');
+                const passed = devs.filter(d => d.result === 'PASS').length;
+                const failed = devs.filter(d => d.result === 'FAIL').length;
+                const withWB = devs.filter(d => d.winbond_type === 'WITH_WINBOND').length;
+                const avgTime = devs.length ? Math.round(devs.reduce((a, d) => a + d.testingTime, 0) / devs.length) : 0;
+                const genDate = new Date().toLocaleString();
+                toast('⟳ Generating report...', 'var(--blue2)');
+
+                setTimeout(() => {
+                    if (format === 'csv') {
+                        const hdr = 'IMEI,ICCID,FID,Status,Result,Testing Time (min),Winbond Type,Battery,Network,Signal';
+                        const rows = devs.map(d => [d.imei, d.iccid, d.fid, d.status, d.result, d.testingTime, d.winbond_type, d.battery, d.network, d.signal].join(','));
+                        const meta = [`\n# Batch Report — ${b.name}`, `# Filter: ${filter}`, `# Generated: ${genDate}`, `# Total: ${devs.length} | Pass: ${passed} | Fail: ${failed} | Avg Time: ${avgTime}m`, ''].join('\n');
+                        const csv = hdr + '\n' + rows.join('\n') + meta;
+                        downloadFile(`${b.name.replace(/\s+/g, '-')}_${filter}_export.csv`, csv, 'text/csv');
+                    } else if (format === 'json') {
+                        const payload = { batchInfo: { name: b.name, description: b.description, createdDate: b.createdDate, filter, generatedDate: genDate }, summary: { total: devs.length, passed, failed, withWinbond: withWB, withoutWinbond: devs.length - withWB, avgTestingTime: avgTime }, devices: devs };
+                        downloadFile(`${b.name.replace(/\s+/g, '-')}_${filter}_export.json`, JSON.stringify(payload, null, 2), 'application/json');
+                    } else if (format === 'pdf') {
+                        const html = buildPDFReport(b, devs, filter, genDate, passed, failed, withWB, avgTime);
+                        const win = window.open('', '_blank');
+                        if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+                    }
+                    toast('✓ Report Exported Successfully', 'var(--green)');
+                }, 400);
+            }
+
+            function downloadFile(name, content, type) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([content], { type }));
+                a.download = name; a.click();
+            }
+
+            function buildPDFReport(b, devs, filter, genDate, passed, failed, withWB, avgTime) {
+                const rows = devs.map(d => `<tr>
+        <td>${d.imei}</td><td>${d.iccid}</td><td>${d.fid}</td>
+        <td style="color:${d.status === 'ACTIVE' ? '#d97706' : d.status === 'PASSED' ? '#059669' : '#374151'}">${d.status}</td>
+        <td style="color:${d.result === 'PASS' ? '#059669' : '#dc2626'};font-weight:700">${d.result}</td>
+        <td>${d.testingTime}m</td>
+        <td style="color:${d.winbond_type === 'WITH_WINBOND' ? '#1d4ed8' : '#ea580c'}">${d.winbond_type === 'WITH_WINBOND' ? 'With Winbond' : 'Without Winbond'}</td>
+    </tr>`).join('');
+                return `<!DOCTYPE html><html><head><title>${b.name} — Export Report</title>
+    <style>body{font-family:Arial,sans-serif;margin:30px;color:#1e293b;}h1{color:#1e40af;margin-bottom:4px;}
+    .meta{color:#64748b;font-size:13px;margin-bottom:20px;}
+    .summary{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+    .s-card{background:#f1f5f9;padding:12px 16px;border-radius:8px;text-align:center;min-width:90px;}
+    .s-val{font-size:22px;font-weight:800;color:#1e40af;}.s-lbl{font-size:11px;color:#64748b;text-transform:uppercase;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{background:#1e40af;color:#fff;padding:8px;text-align:left;}
+    td{padding:6px 8px;border-bottom:1px solid #e2e8f0;}
+    tr:nth-child(even){background:#f8fafc;}
+    @media print{body{margin:10px;}}
+    </style></head><body>
+    <h1>📊 ${b.name} — Test Report</h1>
+    <div class="meta">${b.description || ''} | Filter: <strong>${filter}</strong> | Generated: ${genDate}</div>
+    <div class="summary">
+        <div class="s-card"><div class="s-val">${devs.length}</div><div class="s-lbl">Total</div></div>
+        <div class="s-card"><div class="s-val" style="color:#059669">${passed}</div><div class="s-lbl">Passed</div></div>
+        <div class="s-card"><div class="s-val" style="color:#dc2626">${failed}</div><div class="s-lbl">Failed</div></div>
+        <div class="s-card"><div class="s-val" style="color:#1d4ed8">${withWB}</div><div class="s-lbl">With WB</div></div>
+        <div class="s-card"><div class="s-val" style="color:#ea580c">${devs.length - withWB}</div><div class="s-lbl">W/O WB</div></div>
+        <div class="s-card"><div class="s-val">${avgTime}m</div><div class="s-lbl">Avg Time</div></div>
+        <div class="s-card"><div class="s-val" style="color:#1e40af">${devs.length ? Math.round(passed / devs.length * 100) : 0}%</div><div class="s-lbl">Pass Rate</div></div>
+    </div>
+    <table><thead><tr><th>IMEI</th><th>ICCID</th><th>FID</th><th>Status</th><th>Result</th><th>Test Time</th><th>Winbond</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    </body></html>`;
+            }
+
+            // ============================================================
+            //  MODALS
+            // ============================================================
+            function showCreateBatchModal() { document.getElementById('createBatchModal').classList.add('on'); }
+            function closeModal(id) { document.getElementById(id).classList.remove('on'); }
+
+            function createBatch() {
+                const name = document.getElementById('mbName').value.trim();
+                if (!name) { toast('Enter batch name', 'var(--red)'); return; }
+                const innerCount = parseInt(document.getElementById('mbInner').value) || 3;
+                const devCount = parseInt(document.getElementById('mbDevices').value) || 20;
+                const bk = 'batch-' + Date.now();
+                const innerBatches = {};
+                for (let i = 0; i < innerCount; i++) {
+                    const ik = 'inner-' + Date.now() + '-' + i;
+                    innerBatches[ik] = { name: 'Sub-Batch ' + String.fromCharCode(65 + i), devices: generateDevices(devCount) };
+                }
+                app.batches[bk] = { name, description: document.getElementById('mbDesc').value, createdDate: new Date(), innerBatches };
+                closeModal('createBatchModal');
+                document.getElementById('mbName').value = ''; document.getElementById('mbDesc').value = '';
+                renderHome();
+                toast('✓ Batch created', 'var(--green)');
+            }
+
+            function showEditBatchModal(bk) {
+                const b = app.batches[bk];
+                document.getElementById('ebKey').value = bk;
+                document.getElementById('ebName').value = b.name;
+                document.getElementById('ebDesc').value = b.description || '';
+                document.getElementById('editBatchModal').classList.add('on');
+            }
+
+            function saveBatchEdit() {
+                const bk = document.getElementById('ebKey').value;
+                app.batches[bk].name = document.getElementById('ebName').value;
+                app.batches[bk].description = document.getElementById('ebDesc').value;
+                closeModal('editBatchModal');
+                renderHome();
+                toast('✓ Batch updated', 'var(--green)');
+            }
+
+            function confirmDeleteBatch(bk) {
+                showConfirm('Delete Batch', 'Are you sure you want to delete this batch? This will remove all inner batches and devices.', () => {
+                    delete app.batches[bk]; renderHome(); toast('Batch deleted', 'var(--red)');
+                });
+            }
+
+            function confirmDeleteIB(bk, ik) {
+                showConfirm('Delete Inner Batch', 'Delete this inner batch and all its devices?', () => {
+                    delete app.batches[bk].innerBatches[ik]; renderBatchDetails(bk); toast('Inner batch deleted', 'var(--red)');
+                });
+            }
+
+            function showConfirm(title, msg, onYes) {
+                document.getElementById('confirmTitle').textContent = title;
+                document.getElementById('confirmMsg').textContent = msg;
+                document.getElementById('confirmYes').onclick = () => { onYes(); closeModal('confirmModal'); };
+                document.getElementById('confirmModal').classList.add('on');
+            }
+
+            function showEditIBModal(bk, ik) {
+                toast('Edit inner batch: ' + app.batches[bk].innerBatches[ik].name, 'var(--blue2)');
+            }
+
+            // ============================================================
+            //  SEARCH
+            // ============================================================
+            function setupSearch() {
+                document.getElementById('globalSearch').addEventListener('input', e => {
+                    const q = e.target.value.toLowerCase().trim();
+                    if (!q) { renderHome(); return; }
+                    const results = [];
+                    Object.entries(app.batches).forEach(([bk, b]) => {
+                        Object.entries(b.innerBatches).forEach(([ik, ib]) => {
+                            ib.devices.forEach(d => {
+                                if (d.imei.includes(q) || d.iccid.includes(q) || d.fid.toLowerCase().includes(q) || b.name.toLowerCase().includes(q) || d.winbond_type.toLowerCase().includes(q))
+                                    results.push({ bk, ik, d });
+                            });
+                        });
+                    });
+                    const container = document.getElementById('batchCardsContainer');
+                    if (!results.length) { container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--txt3)">No results found</div>'; return; }
+                    container.innerHTML = results.slice(0, 20).map(r => `<div class="batch-card" onclick="goToDeviceView('${r.bk}','${r.ik}')">
+            <div class="bc-name">${r.d.imei}</div>
+            <div class="bc-desc" style="margin-top:4px">${r.d.iccid}</div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                <span class="badge ${r.d.result.toLowerCase()}">${r.d.result}</span>
+                <span class="badge pending">${r.d.fid}</span>
+                <span class="winbond-badge ${r.d.winbond_type === 'WITH_WINBOND' ? 'with' : 'without'}" style="padding:2px 6px;font-size:9px;">${r.d.winbond_type === 'WITH_WINBOND' ? 'WB' : 'WOB'}</span>
+            </div>
+        </div>`).join('');
+                });
+            }
+
+            // ============================================================
+            //  THEME
+            // ============================================================
+            function toggleTheme() {
+                app.theme = app.theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('theme', app.theme);
+                setTheme(app.theme);
+            }
+            function setTheme(t) {
+                if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+                else document.documentElement.removeAttribute('data-theme');
+            }
+
+            // ============================================================
+            //  TOAST
+            // ============================================================
+            function toast(msg, color = 'var(--blue2)') {
+                const el = document.getElementById('toast');
+                el.textContent = msg;
+                el.style.background = color;
+                el.classList.add('on');
+                clearTimeout(el._t);
+                el._t = setTimeout(() => el.classList.remove('on'), 2800);
+            }
+
+            // ============================================================
+            //  INIT
+            // ============================================================
+            // ============================================================
+            //  AUTH — LOGIN / LOGOUT
+            // ============================================================
+            const AUTH_USER = 'TRAXSMART';
+            const AUTH_PASS = '12345678';
+
+            function checkSession() {
+                if (localStorage.getItem('isLoggedIn') === 'true') {
+                    // Already logged in — skip login screen
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboardWrap').style.display = 'block';
+                    return true;
+                }
+                return false;
+            }
+
+            function togglePassVis() {
+                const inp = document.getElementById('lgnPass');
+                inp.type = inp.type === 'password' ? 'text' : 'password';
+            }
+
+            function attemptLogin() {
+                const user = document.getElementById('lgnUser').value.trim();
+                const pass = document.getElementById('lgnPass').value;
+                const btn = document.getElementById('lgnBtn');
+                const feedback = document.getElementById('lgnFeedback');
+                const card = document.getElementById('loginCard');
+
+                feedback.className = 'lgn-feedback';
+                feedback.style.display = 'none';
+                btn.disabled = true;
+                btn.textContent = '⏳ Checking...';
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.textContent = '🔓 ACCESS DASHBOARD';
+                    if (user === AUTH_USER && pass === AUTH_PASS) {
+                        // Success
+                        btn.textContent = '✓ ACCESS GRANTED';
+                        feedback.className = 'lgn-feedback success';
+                        feedback.textContent = 'Success!';
+                        // Update glow to green
+                        document.documentElement.style.setProperty('--glow-color', '#10b981');
+                        document.documentElement.style.setProperty('--on', '1');
+
+                        setTimeout(() => {
+                            localStorage.setItem('isLoggedIn', 'true');
+                            const screen = document.getElementById('loginScreen');
+                            screen.classList.add('hide');
+                            setTimeout(() => {
+                                screen.style.display = 'none';
+                                document.getElementById('dashboardWrap').style.display = 'block';
+                                if (!window._dashInited) { init(); window._dashInited = true; }
+                            }, 650);
+                        }, 800);
+                    } else {
+                        // Fail — shake card, show error
+                        card.classList.remove('shake');
+                        void card.offsetWidth;
+                        card.classList.add('shake');
+                        feedback.className = 'lgn-feedback error';
+                        feedback.textContent = 'Try admin/password';
+                        // Pulse glow red
+                        document.documentElement.style.setProperty('--glow-color', '#ef4444');
+                        setTimeout(() => {
+                            document.documentElement.style.setProperty('--glow-color', 'hsl(320,40%,45%)');
+                        }, 1000);
+                    }
+                }, 700);
+            }
+
+            function confirmLogout() {
+                showConfirm('Logout', 'Are you sure you want to logout?', () => {
+                    localStorage.removeItem('isLoggedIn');
+                    // Reset & show login screen
+                    const screen = document.getElementById('loginScreen');
+                    screen.style.display = 'grid';
+                    screen.style.opacity = '1';
+                    screen.style.transform = '';
+                    screen.classList.remove('hide');
+                    document.getElementById('dashboardWrap').style.display = 'none';
+                    document.getElementById('lgnUser').value = '';
+                    document.getElementById('lgnPass').value = '';
+                    const fb = document.getElementById('lgnFeedback');
+                    fb.className = 'lgn-feedback';
+                    fb.style.display = 'none';
+                    document.documentElement.style.setProperty('--glow-color', 'hsl(320,40%,45%)');
+                    const btn = document.getElementById('lgnBtn');
+                    btn.textContent = '🔓 ACCESS DASHBOARD';
+                    // Turn off lamp
+                    document.documentElement.style.setProperty('--on', '0');
+                    gsap.set(document.documentElement, { '--on': 0 });
+                    const card = document.getElementById('loginCard');
+                    STATE_LAMP.ON = false;
+                    card.classList.remove('active');
+                    document.getElementById('lampToggle').checked = false;
+                });
+            }
+
+            // ============================================================
+            //  LAMP STATE (global so confirmLogout can access it)
+            // ============================================================
+            const STATE_LAMP = { ON: false, hue: 320 };
+            const LAMP_AUDIO = new Audio("https://assets.codepen.io/605876/click.mp3");
+
+            // ============================================================
+            //  LAMP TOGGLE LOGIC — exact logic from cute lamp login
+            // ============================================================
+            function toggleLamp() {
+                STATE_LAMP.ON = !STATE_LAMP.ON;
+                LAMP_AUDIO.play();
+                gsap.set(document.documentElement, { '--on': STATE_LAMP.ON ? 1 : 0, '--shade-hue': STATE_LAMP.hue });
+                gsap.to('.lgn-lamp .lamp__eye', { rotate: STATE_LAMP.ON ? 0 : 180, duration: 0.2 });
+
+                const card = document.getElementById('loginCard');
+                if (STATE_LAMP.ON) card.classList.add('active');
+                else card.classList.remove('active');
+                document.getElementById('lampToggle').checked = STATE_LAMP.ON;
+            }
+
+            window.addEventListener('DOMContentLoaded', () => {
+                // Check session first
+                const alreadyIn = checkSession();
+
+                // Init lamp with exact cute lamp Draggable logic
+                if (typeof gsap !== 'undefined' && typeof Draggable !== 'undefined') {
+                    gsap.registerPlugin(Draggable);
+                    const LAMP_SVG = document.querySelector('.lgn-lamp');
+                    const HIT = document.querySelector('.lgn-lamp .lamp__hit');
+                    const DUMMY_CORD = document.querySelector('.lgn-lamp .cord--dummy');
+                    const ENDX = 124, ENDY = 348;
+
+                    gsap.set(LAMP_SVG, { display: 'block' });
+
+                    Draggable.create(document.createElement('div'), {
+                        trigger: HIT,
+                        onDrag: function () {
+                            gsap.set(DUMMY_CORD, { attr: { x2: this.x + ENDX, y2: Math.max(350, this.y + ENDY) } });
+                        },
+                        onRelease: function () {
+                            gsap.to(DUMMY_CORD, { attr: { x2: ENDX, y2: ENDY }, duration: 0.2, onComplete: toggleLamp });
+                        }
+                    });
+                }
+
+                // Toggle switch
+                document.getElementById('lampToggle').addEventListener('change', toggleLamp);
+
+                // Settings panel close button
+                document.getElementById('lgnClosePanelBtn').onclick = () => {
+                    document.getElementById('lgnColorPanel').classList.remove('open');
+                };
+
+                // Init dashboard if already logged in
+                if (alreadyIn) { init(); window._dashInited = true; }
+            });
+
+            // ============================================================
+            //  LAMP COLOR PANEL — exact logic from cute lamp login
+            // ============================================================
+            function toggleLampColorPanel() {
+                document.getElementById('lgnColorPanel').classList.toggle('open');
+            }
+
+            // Close panel when clicking outside
+            document.addEventListener('click', function (e) {
+                const panel = document.getElementById('lgnColorPanel');
+                const btn = document.getElementById('lgnSettingsBtn');
+                if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+                    panel.classList.remove('open');
+                }
+            });
+
+            function setLampColor(el) {
+                STATE_LAMP.hue = el.dataset.hue;
+                gsap.set(document.documentElement, {
+                    '--glow-color': `hsl(${STATE_LAMP.hue}, 40%, 45%)`,
+                    '--shade-hue': STATE_LAMP.hue
+                });
+                document.querySelectorAll('.lgn-swatch').forEach(s => s.classList.remove('active'));
+                el.classList.add('active');
+            }
+        </script>
+    </div><!-- /dashboardWrap -->
+</body>
+
+</html>
